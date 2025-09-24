@@ -1,8 +1,8 @@
 import * as path from 'node:path';
 import * as fs from 'node:fs/promises';
-import { getConfigHash, loadConfig } from '@/utils/config';
-import { generateJS } from '@/map/generate';
-import { fileCache } from '@/map/file-cache';
+import { getConfigHash, loadConfig } from '@/loaders/config/load';
+import { generateJS } from '@/next/map/generate';
+import { removeFileCache } from '@/next/map/file-cache';
 import { ValidationError } from '@/utils/validation';
 
 /**
@@ -47,7 +47,7 @@ export async function start(
   await updateMapFile();
 
   if (dev) {
-    const { watcher } = await import('@/map/watcher');
+    const { watcher } = await import('@/next/map/watcher');
     const instance = watcher(configPath, config, [outPath]);
 
     instance.on('ready', () => {
@@ -66,7 +66,7 @@ export async function start(
           config = await loadConfig(configPath, outDir, configHash, true);
         }
 
-        if (event === 'change') fileCache.removeCache(absolutePath);
+        if (event === 'change') removeFileCache(absolutePath);
 
         await updateMapFile();
       };

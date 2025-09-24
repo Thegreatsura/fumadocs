@@ -1,6 +1,6 @@
 import type { StandardSchemaV1 } from '@standard-schema/spec';
 import type { MetaData, PageData, Source } from 'fumadocs-core/source';
-import type { LoadedConfig } from '@/utils/config';
+import type { LoadedConfig } from '@/loaders/config';
 import type { DocCollection, DocsCollection, MetaCollection } from '@/config';
 import type {
   AsyncDocCollectionEntry,
@@ -15,9 +15,8 @@ export interface RuntimeFile {
 }
 
 export interface AsyncRuntimeFile {
-  info: FileInfo;
+  info: FileInfo & { hash?: string; absolutePath?: string };
   data: Record<string, unknown>;
-  content: { matter: string; body: string };
   lastModified?: Date;
 }
 

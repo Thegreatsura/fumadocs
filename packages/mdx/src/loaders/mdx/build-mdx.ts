@@ -1,6 +1,6 @@
 import { createProcessor, type ProcessorOptions } from '@mdx-js/mdx';
 import type { VFile } from 'vfile';
-import { remarkInclude } from '@/mdx/remark-include';
+import { remarkInclude } from '@/loaders/mdx/remark-include';
 import type { StructuredData } from 'fumadocs-core/mdx-plugins';
 import type { TableOfContents } from 'fumadocs-core/server';
 import type { FC } from 'react';
@@ -9,7 +9,7 @@ import {
   type ExtractedReference,
   type PostprocessOptions,
   remarkPostprocess,
-} from '@/mdx/remark-postprocess';
+} from '@/loaders/mdx/remark-postprocess';
 
 type Processor = ReturnType<typeof createProcessor>;
 
@@ -129,7 +129,7 @@ export async function buildMDX(
   }
 
   return getProcessor(
-    (options.format ?? filePath.endsWith('.mdx')) ? 'mdx' : 'md',
+    options.format ?? (filePath.endsWith('.mdx') ? 'mdx' : 'md'),
   ).process({
     value: source,
     path: filePath,
