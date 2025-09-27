@@ -5,7 +5,6 @@ import {
   loadFiles,
   type MetaFile,
   type PageFile,
-  type Transformer,
 } from './load-files';
 import type { MetaData, PageData, UrlFn } from './types';
 import { type BaseOptions, createPageTreeBuilder } from './page-tree/builder';
@@ -18,6 +17,14 @@ import {
   parseFilePath,
 } from './path';
 import { normalizeUrl } from '@/utils/normalize-url';
+import { buildPlugins, type LoaderPlugins } from '@/source/plugins';
+import { slugsPlugin } from '@/source/plugins/slugs';
+import {
+  compatPlugin,
+  type LegacyLoaderOptions,
+  type LegacyPageTreeOptions,
+} from '@/source/plugins/compat';
+import { iconPlugin, type IconResolver } from '@/source/plugins/icon';
 
 export interface LoaderConfig {
   source: SourceConfig;
@@ -29,28 +36,29 @@ export interface SourceConfig {
   metaData: MetaData;
 }
 
-export interface LoaderOptions<
-  T extends SourceConfig = SourceConfig,
+export type LoaderOptions<
+  Config extends SourceConfig = SourceConfig,
   I18n extends I18nConfig | undefined = I18nConfig | undefined,
-> {
-  baseUrl: string;
-
-  icon?: NonNullable<BaseOptions['resolveIcon']>;
-  slugs?: (info: FileInfo) => string[];
-  url?: UrlFn;
-
-  source: Source<T> | Source<T>[];
-  transformers?: Transformer[];
-
-  /**
-   * Additional options for page tree builder
-   */
-  pageTree?: Partial<BaseOptions<T['pageData'], T['metaData']>>;
-
+> = BaseLoaderOptions<NoInfer<Config>> & {
+  source: Source<Config> | Source<Config>[];
   /**
    * Configure i18n
    */
   i18n?: I18n;
+};
+
+interface BaseLoaderOptions<Config extends SourceConfig>
+  extends LegacyLoaderOptions {
+  baseUrl: string;
+  icon?: IconResolver;
+  slugs?: (info: FileInfo) => string[];
+  url?: UrlFn;
+  /**
+   * Additional options for page tree builder
+   */
+  pageTree?: Partial<BaseOptions> &
+    LegacyPageTreeOptions<Config['pageData'], Config['metaData']>;
+  plugins?: LoaderPlugins<Config['pageData'], Config['metaData']>;
 }
 
 export interface Source<Config extends SourceConfig> {
@@ -144,15 +152,21 @@ export interface LoaderOutput<Config extends LoaderConfig> {
       }
     | undefined;
 
+  /**
+   * @internal
+   */
   _i18n?: I18nConfig;
 
   /**
-   * Get list of pages from language
+   * Get a list of pages from specified language
    *
-   * @param language - If empty, the default language will be used
+   * @param language - If empty, list pages from all languages.
    */
   getPages: (language?: string) => Page<Config['source']['pageData']>[];
 
+  /**
+   * get each language and its pages, empty if i18n is not enabled.
+   */
   getLanguages: () => LanguageEntry<Config['source']['pageData']>[];
 
   /**
@@ -274,50 +288,22 @@ function createOutput(options: LoaderOptions): LoaderOutput<LoaderConfig> {
     console.warn('`loader()` now requires a `baseUrl` option to be defined.');
   }
 
-  const {
-    source,
-    baseUrl = '/',
-    i18n,
-    slugs: slugsFn,
-    url: urlFn,
-    transformers = [],
-  } = options;
+  const { source, baseUrl = '/', i18n, slugs: slugsFn, url: urlFn } = options;
   const getUrl: UrlFn = urlFn
     ? (...args) => normalizeUrl(urlFn(...args))
     : createGetUrl(baseUrl, i18n);
   const defaultLanguage = i18n?.defaultLanguage ?? '';
   const files = loadSource(source);
-
-  const transformerSlugs: Transformer = ({ storage }) => {
-    const indexFiles = new Set<string>();
-    const taken = new Set<string>();
-    // for custom slugs function, don't handle conflicting cases like `dir/index.mdx` vs `dir.mdx`
-    const autoIndex = slugsFn === undefined;
-
-    for (const path of storage.getFiles()) {
-      const file = storage.read(path);
-      if (!file || file.format !== 'page' || file.slugs) continue;
-
-      if (isIndex(path) && autoIndex) {
-        indexFiles.add(path);
-        continue;
-      }
-
-      file.slugs = slugsFn ? slugsFn(parseFilePath(path)) : getSlugs(path);
-
-      const key = file.slugs.join('/');
-      if (taken.has(key)) throw new Error('Duplicated slugs');
-      taken.add(key);
-    }
-
-    for (const path of indexFiles) {
-      const file = storage.read(path);
-      if (file?.format !== 'page') continue;
-
-      file.slugs = getSlugs(path);
-      if (taken.has(file.slugs.join('/'))) file.slugs.push('index');
-    }
-  };
+  const plugins = [slugsPlugin(slugsFn)];
+  if (options.icon) {
+    plugins.push(iconPlugin(options.icon));
+  }
+  if (options.plugins) {
+    plugins.push(...buildPlugins(options.plugins));
+  }
+  if (options.pageTree) {
+    plugins.push(...compatPlugin(options, options.pageTree));
+  }
 
   const storages = loadFiles(
     files,
@@ -340,7 +326,7 @@ function createOutput(options: LoaderOptions): LoaderOutput<LoaderConfig> {
           data: file.data,
         } as MetaFile;
       },
-      transformers: [transformerSlugs, ...transformers],
+      plugins,
     },
     i18n ?? {
       defaultLanguage,
@@ -358,7 +344,7 @@ function createOutput(options: LoaderOptions): LoaderOutput<LoaderConfig> {
     get pageTree() {
       pageTree ??= builder.buildI18n({
         storages,
-        resolveIcon: options.icon,
+        plugins,
         ...options.pageTree,
       });
 
@@ -396,11 +382,13 @@ function createOutput(options: LoaderOptions): LoaderOutput<LoaderConfig> {
           hash,
         };
     },
-    getPages(language = defaultLanguage) {
+    getPages(language) {
       const pages: Page[] = [];
 
       for (const [key, value] of walker.pages.entries()) {
-        if (key.startsWith(`${language}.`)) pages.push(value);
+        if (language === undefined || key.startsWith(`${language}.`)) {
+          pages.push(value);
+        }
       }
 
       return pages;
@@ -490,10 +478,6 @@ function fileToPage<Data = PageData>(
 }
 
 const GroupRegex = /^\(.+\)$/;
-
-function isIndex(file: string) {
-  return basename(file, extname(file)) === 'index';
-}
 
 /**
  * Convert file path into slugs, also encode non-ASCII characters, so they can work in pathname
