@@ -1,12 +1,12 @@
 {
   "name": "fumadocs-core",
-  "version": "15.8.1",
-  "description": "The library for building a documentation website in Next.js",
+  "version": "15.8.2",
+  "description": "The library for building a documentation website in any React.js framework",
   "keywords": [
-    "NextJs",
+    "Fumadocs",
     "Docs"
   ],
-  "homepage": "https://fumadocs.vercel.app",
+  "homepage": "https://fumadocs.dev",
   "repository": "github:fuma-nama/fumadocs",
   "license": "MIT",
   "author": "Fuma Nama",
@@ -28,9 +28,21 @@
       "import": "./dist/content/index.js",
       "types": "./dist/content/index.d.ts"
     },
+    "./content/*": {
+      "import": "./dist/content/*.js",
+      "types": "./dist/content/*.d.ts"
+    },
     "./hide-if-empty": {
       "import": "./dist/hide-if-empty.js",
       "types": "./dist/hide-if-empty.d.ts"
+    },
+    "./negotiation": {
+      "import": "./dist/negotiation/index.js",
+      "types": "./dist/negotiation/index.d.ts"
+    },
+    "./page-tree": {
+      "import": "./dist/page-tree/index.js",
+      "types": "./dist/page-tree/index.d.ts"
     },
     "./search": {
       "import": "./dist/search/index.js",
@@ -47,6 +59,10 @@
     "./source": {
       "import": "./dist/source/index.js",
       "types": "./dist/source/index.d.ts"
+    },
+    "./source/*": {
+      "import": "./dist/source/plugins/*.js",
+      "types": "./dist/source/plugins/*.d.ts"
     },
     "./utils/*": {
       "import": "./dist/utils/*.js",
@@ -111,6 +127,7 @@
     "image-size": "^2.0.2",
     "negotiator": "^1.0.0",
     "npm-to-yarn": "^3.0.1",
+    "path-to-regexp": "^8.3.0",
     "react-remove-scroll": "^2.7.1",
     "remark": "^15.0.0",
     "remark-gfm": "^4.0.1",
@@ -133,6 +150,7 @@
     "@types/react-dom": "^19.1.9",
     "algoliasearch": "5.39.0",
     "eslint-config-custom": "workspace:*",
+    "lucide-react": "^0.544.0",
     "mdast-util-mdx-jsx": "^3.2.0",
     "mdast-util-mdxjs-esm": "^2.0.1",
     "next": "^15.5.4",
@@ -155,7 +173,8 @@
     "react": "18.x.x || 19.x.x",
     "react-dom": "18.x.x || 19.x.x",
     "react-router": "7.x.x",
-    "waku": "^0.26.0"
+    "waku": "^0.26.0",
+    "lucide-react": "*"
   },
   "peerDependenciesMeta": {
     "@mixedbread/sdk": {
@@ -186,6 +205,9 @@
       "optional": true
     },
     "@tanstack/react-router": {
+      "optional": true
+    },
+    "lucide-react": {
       "optional": true
     }
   },

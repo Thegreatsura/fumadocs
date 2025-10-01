@@ -1,11 +1,11 @@
 import type { HTMLAttributes } from 'react';
 import type { LoaderConfig, LoaderOutput, Page } from 'fumadocs-core/source';
-import { getPageTreePeers, type PageTree } from 'fumadocs-core/server';
+import { getPageTreePeers, type Root } from 'fumadocs-core/page-tree';
 import { Card, Cards } from '@/components/card';
 import * as path from 'node:path';
 
 /**
- * @deprecated use https://fumadocs.vercel.app/docs/ui/markdown#further-reading-section instead
+ * @deprecated use https://fumadocs.dev/docs/ui/markdown#further-reading-section instead
  */
 export function DocsCategory({
   page,
@@ -15,7 +15,7 @@ export function DocsCategory({
 }: HTMLAttributes<HTMLDivElement> & {
   page: Page;
   from: LoaderOutput<LoaderConfig>;
-  tree?: PageTree.Root;
+  tree?: Root;
 }) {
   let tree;
 

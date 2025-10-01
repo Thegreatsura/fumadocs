@@ -1,13 +1,13 @@
 {
   "name": "fumadocs-typescript",
-  "version": "4.0.9",
+  "version": "4.0.10",
   "description": "Typescript Integration for Fumadocs",
   "keywords": [
     "NextJs",
     "fumadocs",
     "Docs"
   ],
-  "homepage": "https://fumadocs.vercel.app",
+  "homepage": "https://fumadocs.dev",
   "repository": "github:fuma-nama/fumadocs",
   "license": "MIT",
   "author": "Fuma Nama",

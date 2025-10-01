@@ -1,12 +1,12 @@
 {
   "name": "fumadocs-openapi",
-  "version": "9.3.13",
+  "version": "9.4.0",
   "description": "Generate MDX docs for your OpenAPI spec",
   "keywords": [
     "NextJs",
     "Docs"
   ],
-  "homepage": "https://fumadocs.vercel.app",
+  "homepage": "https://fumadocs.dev",
   "repository": "github:fuma-nama/fumadocs",
   "license": "MIT",
   "author": "Fuma Nama",
