@@ -1,6 +1,5 @@
-import { ImageResponse } from 'next/og';
+import { ImageResponse, type ImageResponseOptions } from '@takumi-rs/image-response';
 import type { ReactNode } from 'react';
-import type { ImageResponseOptions } from 'next/dist/compiled/@vercel/og/types';
 
 interface GenerateProps {
   title: ReactNode;
