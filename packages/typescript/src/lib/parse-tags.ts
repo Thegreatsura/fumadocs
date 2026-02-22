@@ -30,8 +30,8 @@ export function parseTags(tags: RawTag[]): TypedTags {
 
       typed.params ??= [];
       typed.params.push({
-        name: param.trim(),
-        description: description.trim(),
+        name: param,
+        description,
       });
       continue;
     }
