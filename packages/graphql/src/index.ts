@@ -1,4 +1,7 @@
-export type { RenderContext } from './types';
+export * from './utils/create-page';
+export * from './utils/generate-schema-ui';
+export type { CodeBlockProps } from 'shared-api/components/defaults';
+export type { OperationExample } from './utils/example';
 export type {
   GeneratedPageProps,
   GraphQLPageItem,
@@ -18,8 +21,3 @@ export {
   type NamedTypeKind,
   type OperationKind,
 } from './utils/schema';
-export {
-  executeGraphQL,
-  type PlaygroundRequest,
-  type PlaygroundResult,
-} from './playground/fetcher';

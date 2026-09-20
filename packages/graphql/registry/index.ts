@@ -5,7 +5,7 @@ import type { Registry } from 'fuma-cli/compiler';
 const dir = path.join(path.dirname(fileURLToPath(import.meta.url)), '../src');
 
 export const registry: Registry = {
-  name: 'fumadocs/graphql',
+  name: 'graphql',
   dir,
   components: [
     {
@@ -80,13 +80,8 @@ export const registry: Registry = {
       files: [
         {
           type: 'components',
-          path: 'playground/index.tsx',
+          path: 'ui/playground/index.tsx',
           target: '<dir>/graphql/playground/index.tsx',
-        },
-        {
-          type: 'components',
-          path: 'playground/storage.ts',
-          target: '<dir>/graphql/playground/storage.ts',
         },
         {
           type: 'components',

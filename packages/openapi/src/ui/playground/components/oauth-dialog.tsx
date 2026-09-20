@@ -7,7 +7,7 @@ import {
   DialogTrigger,
 } from 'shared-api/components/dialog';
 import { Input } from 'shared-api/components/input';
-import { labelVariants } from 'shared-api/components/label';
+import { Label } from 'shared-api/components/label';
 import { useQuery } from 'shared-api/utils/use-query';
 import { type ReactNode, useMemo, useState } from 'react';
 import { cn } from '@/utils/cn';
@@ -19,12 +19,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from 'shared-api/components/select';
-import type { OAuth2SecurityScheme } from '@/types';
 import { useTranslations } from '@fuma-translate/react';
-import { useAuth } from '../auth';
-import { useOpenAPI } from '@/headless';
-
-type FlowType = keyof NonNullable<OAuth2SecurityScheme['flows']>;
+import { type OAuthFlowType, requestOAuthToken, usePlaygroundAuth } from '@/playground/auth';
+import { useOpenAPI } from '@/utils/create-page';
 
 export interface AuthDialogContentProps {
   schemeId: string;
@@ -39,21 +36,6 @@ interface FormValues {
   clientSecret: string;
   username: string;
   password: string;
-}
-
-export interface AuthCodeState {
-  redirect_uri: string;
-  client_id: string;
-  client_secret: string;
-  /** name of the source security scheme */
-  scheme: string;
-}
-
-export interface ImplicitState {
-  redirect_uri: string;
-  client_id: string;
-  /** name of the source security scheme */
-  scheme: string;
 }
 
 interface FlowInfo {
@@ -81,13 +63,13 @@ export function OAuthDialogContent(props: AuthDialogContentProps) {
 function Content({ schemeId, scopes, setToken, setOpen }: AuthDialogContentProps) {
   const { dereferenced, resolve } = useOpenAPI().doc;
   const schemes = dereferenced.components?.securitySchemes;
-  const tokenInfo = useAuth().store[schemeId];
+  const tokenInfo = usePlaygroundAuth().store[schemeId];
   const scheme = resolve(schemes?.[schemeId]);
   if (!scheme || scheme.type !== 'oauth2')
     throw new Error('unexpected schemaId: must be type oauth2');
 
-  const [type, setType] = useState<FlowType | null>(() => {
-    return Object.keys(scheme.flows!)[0] as FlowType;
+  const [type, setType] = useState<OAuthFlowType | null>(() => {
+    return Object.keys(scheme.flows!)[0] as OAuthFlowType;
   });
   const [clientAuth, setClientAuth] = useState<'body' | 'header'>('body');
 
@@ -102,7 +84,7 @@ function Content({ schemeId, scopes, setToken, setOpen }: AuthDialogContentProps
       description: t('Send the client ID and secret in the Authorization header.'),
     },
   };
-  const allFlows: Record<FlowType, FlowInfo> = useMemo(
+  const allFlows: Record<OAuthFlowType, FlowInfo> = useMemo(
     () => ({
       password: {
         name: t('Resource Owner Password Flow'),
@@ -143,104 +125,17 @@ function Content({ schemeId, scopes, setToken, setOpen }: AuthDialogContentProps
   }, [tokenInfo]);
 
   const authorize = useQuery(async (values: FormValues) => {
-    if (type === 'implicit') {
-      const value = scheme.flows![type]!;
+    if (!type) return;
+    const token = await requestOAuthToken(scheme, type, {
+      ...values,
+      schemeId,
+      scopes,
+      clientAuth,
+    });
+    if (!token) return;
 
-      const params = new URLSearchParams();
-      params.set('response_type', 'token');
-      params.set('client_id', values.clientId);
-      params.set('redirect_uri', window.location.href);
-      params.set('scope', scopes.join('+'));
-      params.set(
-        'state',
-        JSON.stringify({
-          scheme: schemeId,
-          client_id: values.clientId,
-          redirect_uri: window.location.href,
-        } satisfies ImplicitState),
-      );
-
-      window.location.replace(`${value.authorizationUrl}?${params.toString()}`);
-      return;
-    }
-    if (type === 'authorizationCode') {
-      const value = scheme.flows![type]!;
-
-      const params = new URLSearchParams();
-      params.set('response_type', 'code');
-      params.set('client_id', values.clientId);
-      params.set('redirect_uri', window.location.href);
-      params.set('scope', scopes.join('+'));
-      params.set(
-        'state',
-        JSON.stringify({
-          client_id: values.clientId,
-          client_secret: values.clientSecret,
-          redirect_uri: window.location.href,
-          scheme: schemeId,
-        } satisfies AuthCodeState),
-      );
-
-      window.location.replace(`${value.authorizationUrl}?${params.toString()}`);
-      return;
-    }
-
-    let res;
-    if (type === 'password') {
-      const value = scheme.flows![type]!;
-
-      const body = new URLSearchParams({
-        grant_type: 'password',
-        username: values.username,
-        password: values.password,
-        scope: scopes.join('+'),
-      });
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      };
-
-      if (clientAuth === 'header') {
-        headers.Authorization = `Basic ${btoa(`${values.clientId}:${values.clientSecret}`)}`;
-      } else {
-        if (values.clientId) body.set('client_id', values.clientId);
-        if (values.clientSecret) body.set('client_secret', values.clientSecret);
-      }
-
-      res = await fetch(value.tokenUrl!, {
-        method: 'POST',
-        headers,
-        body,
-      });
-    }
-
-    if (type === 'clientCredentials') {
-      const value = scheme.flows![type]!;
-
-      res = await fetch(value.tokenUrl!, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          grant_type: 'client_credentials',
-          client_id: values.clientId,
-          client_secret: values.clientSecret,
-          scope: scopes.join('+'),
-        }),
-      });
-    }
-
-    if (res) {
-      if (!res.ok) throw new Error(await res.text());
-
-      const { access_token, token_type = 'Bearer' } = (await res.json()) as {
-        access_token: string;
-        token_type?: string;
-      };
-
-      setToken(`${token_type} ${access_token}`);
-      setOpen(false);
-    }
+    setToken(token);
+    setOpen(false);
   });
 
   const isLoading = authorize.isLoading;
@@ -258,7 +153,7 @@ function Content({ schemeId, scopes, setToken, setOpen }: AuthDialogContentProps
     >
       <Select
         items={Object.keys(scheme.flows!).map((key) => {
-          const { name, description } = allFlows[key as FlowType];
+          const { name, description } = allFlows[key as OAuthFlowType];
 
           return {
             value: key,
@@ -278,7 +173,7 @@ function Content({ schemeId, scopes, setToken, setOpen }: AuthDialogContentProps
         </SelectTrigger>
         <SelectContent>
           {Object.keys(scheme.flows!).map((key) => {
-            const { name, description } = allFlows[key as FlowType];
+            const { name, description } = allFlows[key as OAuthFlowType];
 
             return (
               <SelectItem key={key} value={key}>
@@ -295,9 +190,7 @@ function Content({ schemeId, scopes, setToken, setOpen }: AuthDialogContentProps
         type === 'implicit' ||
         type === 'password') && (
         <fieldset className="flex flex-col gap-1.5">
-          <label htmlFor="client_id" className={cn(labelVariants())}>
-            {t('Client ID')}
-          </label>
+          <Label htmlFor="client_id">{t('Client ID')}</Label>
           <p className="text-fd-muted-foreground text-sm">
             {t('The client ID of your OAuth application.')}
           </p>
@@ -315,9 +208,7 @@ function Content({ schemeId, scopes, setToken, setOpen }: AuthDialogContentProps
       )}
       {(type === 'authorizationCode' || type === 'clientCredentials' || type === 'password') && (
         <fieldset className="flex flex-col gap-1.5">
-          <label htmlFor="client_secret" className={cn(labelVariants())}>
-            {t('Client Secret')}
-          </label>
+          <Label htmlFor="client_secret">{t('Client Secret')}</Label>
           <p className="text-fd-muted-foreground text-sm">
             {t('The client secret of your OAuth application.')}
           </p>
@@ -336,9 +227,7 @@ function Content({ schemeId, scopes, setToken, setOpen }: AuthDialogContentProps
       {type === 'password' && (
         <>
           <fieldset className="flex flex-col gap-1.5">
-            <label htmlFor="client_auth" className={cn(labelVariants())}>
-              {t('Client Authentication')}
-            </label>
+            <Label htmlFor="client_auth">{t('Client Authentication')}</Label>
             <Select
               items={Object.entries(clientAuthMethods).map(([key, method]) => ({
                 label: (
@@ -366,9 +255,7 @@ function Content({ schemeId, scopes, setToken, setOpen }: AuthDialogContentProps
             </Select>
           </fieldset>
           <fieldset className="flex flex-col gap-1.5">
-            <label htmlFor="username" className={cn(labelVariants())}>
-              {t('Username')}
-            </label>
+            <Label htmlFor="username">{t('Username')}</Label>
             <Input
               id="username"
               name="username"
@@ -381,9 +268,7 @@ function Content({ schemeId, scopes, setToken, setOpen }: AuthDialogContentProps
             />
           </fieldset>
           <fieldset className="flex flex-col gap-1.5">
-            <label htmlFor="password" className={cn(labelVariants())}>
-              {t('Password')}
-            </label>
+            <Label htmlFor="password">{t('Password')}</Label>
             <Input
               id="password"
               name="password"

@@ -3,7 +3,7 @@ import { createContext, type ReactNode, use, useMemo, useSyncExternalStore } fro
 import { useTranslations } from '@fuma-translate/react';
 import { idToTitle } from 'shared-api/utils/id-to-title';
 import { sample } from '@fumadocs/json-schema';
-import { joinURL, resolveServerUrl } from 'shared-api/utils/url';
+import { joinURL } from 'shared-api/utils/url';
 import { getRaw } from '@scalar/json-magic/magic-proxy';
 import type {
   HttpMethods,
@@ -26,9 +26,9 @@ import { isMediaTypeSupported } from '@/requests/media/adapter';
 import { encodeRequestData } from '@/requests/media/encode';
 import { getPreferredType, methodKeys } from '@/utils/schema';
 import { getExampleRequests } from '@/utils/get-example-requests';
-import { ServerProvider, useOpenAPI, useServer } from './runtime';
+import { useOpenAPI } from '@/utils/create-page';
+import { ServerProvider, useServer } from '@/utils/use-server';
 
-export type { RawRequestData };
 export interface OperationParameters {
   in: 'path' | 'query' | 'header' | 'cookie';
   items: ParameterObject[];
@@ -120,6 +120,17 @@ export interface ResponseTab {
   mediaType: string | null;
 
   examples?: ResponseExample[];
+}
+
+/** props of the component rendering an operation or webhook of a page */
+export interface PageOperationProps {
+  type: 'operation' | 'webhook';
+  path: string;
+  method: HttpMethods;
+  operation: OperationObject;
+  pathItem: PathItemObject;
+  showTitle?: boolean;
+  showDescription?: boolean;
 }
 
 export interface OperationProviderProps {
@@ -292,7 +303,11 @@ export function OperationProvider({
   const servers = operation.servers ?? pathItem.servers;
   if (!servers) return content;
 
-  return <ServerProvider servers={servers as ServerObject[]}>{content}</ServerProvider>;
+  return (
+    <ServerProvider servers={servers as ServerObject[]} storageKeyPrefix={runtime.storageKeyPrefix}>
+      {content}
+    </ServerProvider>
+  );
 }
 
 /** an external store, so selecting examples doesn't re-render the entire operation */
@@ -379,16 +394,6 @@ export function useExampleRequest(): RawRequestData | undefined {
   return useSelectedExample()?.data;
 }
 
-const noop = () => () => {};
-/** `false` on the server and during hydration */
-function useIsClient() {
-  return useSyncExternalStore(
-    noop,
-    () => true,
-    () => false,
-  );
-}
-
 /**
  * Generate the code usage of the selected example request with the generator `id`.
  *
@@ -397,28 +402,22 @@ function useIsClient() {
 export function useCodeUsage(id: string): string | undefined {
   const { mediaAdapters } = useOpenAPI();
   const { info } = useOperationState();
-  const { server } = useServer();
+  const { server, resolveUrl } = useServer();
   const codegen = info.codeUsages.get(id);
   const { encoded, pathname } = useSelectedExample() ?? {};
-  const isClient = useIsClient();
 
   return useMemo(() => {
     if (!encoded || !pathname || !codegen) return;
-    const url = joinURL(
-      server && isClient
-        ? new URL(resolveServerUrl(server.url, server.variables), window.location.origin).href
-        : 'https://example.com',
-      pathname,
-    );
 
     return codegen.generate(
-      { ...encoded, url },
+      // a sample without a server points to a placeholder host, not the docs site
+      { ...encoded, url: server ? resolveUrl(pathname) : joinURL('https://example.com', pathname) },
       {
         mediaAdapters,
         custom: null,
       },
     );
-  }, [encoded, pathname, server, isClient, codegen, mediaAdapters]);
+  }, [encoded, pathname, server, resolveUrl, codegen, mediaAdapters]);
 }
 
 /**

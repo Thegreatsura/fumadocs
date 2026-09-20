@@ -5,27 +5,19 @@ import { AnchorSection } from 'shared-api/auto-anchor/client';
 import { isRequiredArgument } from 'graphql';
 import { Callout } from 'fumadocs-ui/components/callout';
 import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
-import {
-  generateRequestSnippets,
-  OperationProvider,
-  type PageOperationProps,
-  useOperation,
-} from '@/headless';
-import type { RenderContext } from '@/types';
+import { useRenderContext } from '@/utils/create-page';
+import { generateRequestSnippets } from '@/utils/snippets';
+import type { PageOperationProps } from '@/operation';
+import { OperationProvider, useOperation } from '@/operation';
 import { SchemaUI } from '@/ui/components/schema';
-import { OperationPlayground } from '@/playground';
+import { OperationPlayground } from '@/ui/playground';
 import { KindLabel } from '../components/badge';
 import { Heading } from '../components/heading';
 import { Markdown } from '../components/markdown';
 import { ClientCodeBlock } from '../components/codeblock';
 import { DirectiveList, TypeAnnotation } from '../components/type-annotation';
 
-export interface OperationProps extends PageOperationProps {
-  /** the options of `createGraphQLPage()` */
-  ctx: RenderContext;
-}
-
-export function Operation({ kind, name, ...props }: OperationProps) {
+export function Operation({ kind, name, ...props }: PageOperationProps) {
   return (
     <OperationProvider kind={kind} name={name}>
       <OperationContent {...props} />
@@ -36,9 +28,9 @@ export function Operation({ kind, name, ...props }: OperationProps) {
 function OperationContent({
   showTitle,
   showDescription,
-  ctx,
-}: Omit<OperationProps, 'kind' | 'name'>) {
+}: Omit<PageOperationProps, 'kind' | 'name'>) {
   const t = useTranslations({ note: 'operation page' });
+  const ctx = useRenderContext();
   const { kind, name, title, field, directives, example } = useOperation();
   let headingLevel = 2;
 
@@ -75,7 +67,7 @@ function OperationContent({
     playgroundNode = playground.render ? (
       playground.render({ kind, name, operation: field, ctx })
     ) : (
-      <OperationPlayground ctx={ctx} />
+      <OperationPlayground />
     );
   }
 

@@ -5,7 +5,7 @@ import type { Registry } from 'fuma-cli/compiler';
 const dir = path.join(path.dirname(fileURLToPath(import.meta.url)), '../src');
 
 export const registry: Registry = {
-  name: 'fumadocs/openapi',
+  name: 'openapi',
   dir,
   components: [
     {
@@ -46,27 +46,27 @@ export const registry: Registry = {
       files: [
         {
           type: 'components',
-          path: 'playground/client.tsx',
+          path: 'ui/playground/client.tsx',
           target: '<dir>/openapi/playground/index.tsx',
         },
         {
           type: 'components',
-          path: 'playground/components/result-display.tsx',
+          path: 'ui/playground/components/result-display.tsx',
           target: '<dir>/openapi/playground/result-display.tsx',
         },
         {
           type: 'components',
-          path: 'playground/components/server-select.tsx',
+          path: 'ui/playground/components/server-select.tsx',
           target: '<dir>/openapi/playground/server-select.tsx',
         },
         {
           type: 'components',
-          path: 'playground/components/oauth-dialog.tsx',
+          path: 'ui/playground/components/oauth-dialog.tsx',
           target: '<dir>/openapi/playground/oauth-dialog.tsx',
         },
         {
           type: 'components',
-          path: 'playground/status-info.tsx',
+          path: 'ui/playground/status-info.tsx',
           target: '<dir>/openapi/playground/status-info.tsx',
         },
       ],

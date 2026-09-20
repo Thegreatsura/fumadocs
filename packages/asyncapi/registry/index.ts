@@ -28,7 +28,7 @@ const protocols = [
 ];
 
 export const registry: Registry = {
-  name: 'fumadocs/asyncapi',
+  name: 'asyncapi',
   dir,
   components: [
     {
@@ -48,11 +48,6 @@ export const registry: Registry = {
           type: 'components',
           path: 'ui/components/server-select.tsx',
           target: '<dir>/asyncapi/components/server-select.tsx',
-        },
-        {
-          type: 'components',
-          path: 'utils/server-url.ts',
-          target: '<dir>/asyncapi/components/server-url.ts',
         },
       ],
     },
