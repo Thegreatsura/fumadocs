@@ -1,6 +1,6 @@
 {
   "name": "docs",
-  "version": "0.1.38",
+  "version": "0.1.39",
   "private": true,
   "scripts": {
     "build": "pnpm build:pre && next build && pnpm build:post",
@@ -37,7 +37,7 @@
     "estree-util-to-js": "^2.0.0",
     "feed": "^6.0.0",
     "flexsearch": "^0.8.212",
-    "fuma-cli": "^0.1.1",
+    "fuma-cli": "^0.3.1",
     "fumadocs-core": "workspace:*",
     "fumadocs-docgen": "workspace:^",
     "fumadocs-epub": "workspace:*",
