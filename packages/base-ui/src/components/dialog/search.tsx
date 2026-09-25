@@ -227,6 +227,10 @@ export function SearchDialogInput(props: ComponentProps<'input'>) {
   return (
     <input
       data-fd-search-dialog-input=""
+      role="combobox"
+      aria-label={t('Search')}
+      aria-autocomplete="list"
+      aria-controls="fd-search-list"
       value={search}
       onChange={(e) => onSearchChange(e.target.value)}
       placeholder={t('Search')}
@@ -332,7 +336,7 @@ export function SearchDialogContent({
 export function SearchDialogList({
   items = null,
   Empty = () => (
-    <div className="py-12 text-center text-sm text-fd-muted-foreground">
+    <div role="status" className="py-12 text-center text-sm text-fd-muted-foreground">
       <T text="No results found" note="search dialog" />
     </div>
   ),
@@ -350,6 +354,7 @@ export function SearchDialogList({
   Item?: (props: { item: SearchItemType; onClick: () => void }) => ReactNode;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const t = useTranslations({ note: 'search dialog' });
   const { onSelect } = useSearch();
   const [active, setActive] = useState<string | null>(() =>
     items && items.length > 0 ? items[0].id : null,
@@ -399,10 +404,18 @@ export function SearchDialogList({
   }, []);
 
   useOnChange(items, () => {
-    if (items && items.length > 0) {
-      setActive(items[0].id);
-    }
+    setActive(items?.[0]?.id ?? null);
   });
+
+  // the combobox input is a sibling, sync its state here
+  useEffect(() => {
+    const input = ref.current?.closest('[role="dialog"]')?.querySelector('[role="combobox"]');
+    if (!input) return;
+
+    input.setAttribute('aria-expanded', String(active !== null));
+    if (active !== null) input.setAttribute('aria-activedescendant', `fd-search-option-${active}`);
+    else input.removeAttribute('aria-activedescendant');
+  }, [active]);
 
   return (
     <div
@@ -415,6 +428,10 @@ export function SearchDialogList({
       )}
     >
       <div
+        id="fd-search-list"
+        // an empty listbox is invalid, expose it only with options
+        role={items?.length ? 'listbox' : undefined}
+        aria-label={items?.length ? t('Search') : undefined}
         className={cn('w-full flex flex-col overflow-y-auto max-h-[460px] p-1', !items && 'hidden')}
       >
         <ListContext
@@ -492,6 +509,9 @@ export function SearchDialogListItem({
   return (
     <button
       type="button"
+      id={`fd-search-option-${item.id}`}
+      role="option"
+      tabIndex={-1}
       ref={useCallback(
         (element: HTMLButtonElement | null) => {
           if (active && element) {
