@@ -17,7 +17,7 @@ import {
 import { useTranslations, T } from '@fuma-translate/react';
 import { cn } from '@/utils/cn';
 import { Dialog } from '@base-ui/react/dialog';
-import type { HighlightedText, ReactSortedResult } from 'fumadocs-core/search';
+import { useHighlightQuery, type ReactSortedResult } from 'fumadocs-core/search';
 import { cva } from 'class-variance-authority';
 import { useRouter } from 'fumadocs-core/framework';
 import type { SharedProps } from '@/contexts/search';
@@ -84,6 +84,7 @@ const mdRenderer = createMarkdownRenderer({
 });
 
 const mdComponents = {
+  // from the deprecated `highlightMarkdown()` of custom search clients
   mark(props: ComponentProps<'mark'>) {
     return <span {...props} className="text-fd-primary underline" />;
   },
@@ -119,14 +120,21 @@ const mdComponents = {
   }: Record<string, unknown> & { _tagName: string; children: ReactNode }) {
     return (
       <span className="inline-flex max-w-full items-center border p-0.5 rounded-md bg-fd-card text-fd-card-foreground divide-x divide-fd-border">
-        <code className="rounded-sm px-0.5 me-1 bg-fd-primary font-medium text-xs text-fd-primary-foreground border-none">
+        <code
+          data-highlight-ignore=""
+          className="rounded-sm px-0.5 me-1 bg-fd-primary font-medium text-xs text-fd-primary-foreground border-none"
+        >
           {_tagName}
         </code>
         {Object.entries(rest).map(([k, v]) => {
           if (typeof v !== 'string') return;
 
           return (
-            <code key={k} className="truncate text-xs text-fd-muted-foreground px-1">
+            <code
+              key={k}
+              data-highlight-ignore=""
+              className="truncate text-xs text-fd-muted-foreground px-1"
+            >
               <span className="text-fd-card-foreground">{k}: </span>
               {v}
             </code>
@@ -459,16 +467,15 @@ export function SearchDialogListItem({
   className,
   children,
   renderMarkdown = (s) => <mdRenderer.Markdown components={mdComponents}>{s}</mdRenderer.Markdown>,
-  renderHighlights: _,
   ...props
 }: ComponentProps<'button'> & {
   renderMarkdown?: (v: string) => ReactNode;
-  /** @deprecated highlight blocks is now wrapped in `<mark />`, use `renderMarkdown` to handle instead. */
-  renderHighlights?: (blocks: HighlightedText<ReactNode>[]) => ReactNode;
   item: SearchItemType;
 }) {
+  const { search } = useSearch();
   const { active: activeId, setActive } = useSearchList();
   const active = item.id === activeId;
+  const highlightRef = useHighlightQuery(search);
 
   if (item.type === 'action') {
     children ??= item.node;
@@ -491,6 +498,7 @@ export function SearchDialogListItem({
           <Hash className="absolute inset-s-6 top-2.5 size-4 text-fd-muted-foreground" />
         )}
         <div
+          ref={highlightRef}
           className={cn(
             'min-w-0',
             item.type === 'text' && 'ps-4',
@@ -526,7 +534,7 @@ export function SearchDialogListItem({
       )}
       aria-selected={active}
       className={cn(
-        'relative select-none shrink-0 px-2.5 py-2 text-start text-sm overflow-hidden rounded-lg',
+        'relative shrink-0 px-2.5 py-2 text-start text-sm overflow-hidden rounded-lg [&_::highlight(fd-search)]:text-fd-primary [&_::highlight(fd-search)]:underline',
         active && 'bg-fd-accent text-fd-accent-foreground',
         className,
       )}
