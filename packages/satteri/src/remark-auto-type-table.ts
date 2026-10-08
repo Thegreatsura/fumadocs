@@ -15,6 +15,7 @@ import {
   type RawTag,
   type RemarkAutoTypeTableOptions,
   type TypeTableProps,
+  typeTableToStructuredData,
 } from 'fumadocs-typescript';
 import { formatTable, replaceSource } from './stringifier';
 import { jsxToSource } from './utils';
@@ -210,6 +211,7 @@ export function remarkAutoTypeTable(config: RemarkAutoTypeTableOptions = {}) {
 
       const children: MdxJsxFlowElement[] = [];
       for (const doc of output) {
+        const id = `type-table-${doc.id}`;
         children.push({
           type: 'mdxJsxFlowElement',
           name: outputName,
@@ -217,7 +219,7 @@ export function remarkAutoTypeTable(config: RemarkAutoTypeTableOptions = {}) {
             {
               type: 'mdxJsxAttribute',
               name: 'id',
-              value: `type-table-${doc.id}`,
+              value: id,
             },
             {
               type: 'mdxJsxAttribute',
@@ -230,6 +232,7 @@ export function remarkAutoTypeTable(config: RemarkAutoTypeTableOptions = {}) {
             ...attributes,
           ],
           children: [],
+          data: { structuredData: { contents: typeTableToStructuredData(id, doc.entries) } },
         });
       }
 

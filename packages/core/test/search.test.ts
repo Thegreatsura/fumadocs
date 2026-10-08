@@ -72,11 +72,28 @@ something`,
         "breadcrumbs": undefined,
         "content": "Hello World",
         "id": "1-0",
+        "table": undefined,
         "type": "heading",
         "url": "/#hello-world",
       },
     ]
   `);
+});
+
+test('Search API Advanced: table ids are metadata', async () => {
+  const api = createSearchAPI('advanced', {
+    indexes: [
+      {
+        id: '1',
+        title: 'Index',
+        structuredData: structure('| Prop | Type |\n| --- | --- |\n| `id` | string |'),
+        url: '/',
+      },
+    ],
+  });
+
+  expect(await api.search('string')).toContainEqual(expect.objectContaining({ table: 'table-0' }));
+  expect(await api.search('table')).toHaveLength(0);
 });
 
 test('buildDocuments: page description duplicated in contents is indexed once', () => {
@@ -426,12 +443,14 @@ test('Meilisearch: search client', async () => {
       {
         "content": "hello x",
         "id": "2",
+        "table": undefined,
         "type": "text",
         "url": "/a#x",
       },
       {
         "content": "hello y",
         "id": "3",
+        "table": undefined,
         "type": "heading",
         "url": "/a#y",
       },

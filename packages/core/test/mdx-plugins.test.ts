@@ -11,6 +11,7 @@ import {
   remarkMdxFiles,
   remarkMdxMermaid,
   remarkStructure,
+  structure,
 } from '@/mdx-plugins';
 import { fileURLToPath } from 'node:url';
 import remarkMdx from 'remark-mdx';
@@ -62,6 +63,29 @@ test('Remark Structure', async () => {
   await expect(JSON.stringify(result.data.structuredData, null, 2)).toMatchFileSnapshot(
     path.resolve(cwd, './fixtures/remark-structure.output.json'),
   );
+});
+
+test('Remark Structure: a record per table row', () => {
+  const { contents } = structure('| a | b |\n| - | - |\n| 1 | 2 |\n| 3 | 4 |');
+
+  expect(contents).toMatchInlineSnapshot(`
+    [
+      {
+        "content": "| a | b |
+    | --- | --- |
+    | 1 | 2 |",
+        "heading": undefined,
+        "table": "table-0",
+      },
+      {
+        "content": "| a | b |
+    | --- | --- |
+    | 3 | 4 |",
+        "heading": undefined,
+        "table": "table-0",
+      },
+    ]
+  `);
 });
 
 test('Remark Admonition', async () => {

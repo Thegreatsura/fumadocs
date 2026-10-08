@@ -1,4 +1,4 @@
-import type { Heading, Link, Nodes, Root } from 'mdast';
+import type { Heading, Link, Nodes, Root, TableRow } from 'mdast';
 import { remark } from 'remark';
 import remarkGfm from 'remark-gfm';
 import type { PluggableList, Processor, Transformer } from 'unified';
@@ -11,6 +11,7 @@ import type {
   MdxJsxTextElement,
 } from 'mdast-util-mdx';
 import { remarkHeading } from './remark-heading';
+import { tableRowToStructuredData } from '@/search';
 import {
   type Stringifier as BaseStringifier,
   type StringifyOptions as BaseStringifyOptions,
@@ -22,9 +23,11 @@ interface StructuredDataHeading {
   content: string;
 }
 
-interface StructuredDataContent {
+export interface StructuredDataContent {
   heading: string | undefined;
   content: string;
+  /** the table of a table row, unique in its page */
+  table?: string;
 }
 
 export interface StructuredData {
@@ -39,9 +42,9 @@ export interface StructureOptions {
   /**
    * MDAST node types to be scanned as a content block.
    *
-   * If a node's type is listed in this array, it will be converted into a single content block.
+   * If a node's type is listed in this array, it will be converted into a single content block, except tables which become a content block per row, along with the header row.
    *
-   * @defaultValue ['heading', 'paragraph', 'blockquote', 'tableCell', 'mdxJsxFlowElement']
+   * @defaultValue ['heading', 'paragraph', 'blockquote', 'table', 'mdxJsxFlowElement']
    */
   types?: string[] | ((node: Nodes) => boolean);
 
@@ -92,7 +95,7 @@ declare module 'vfile' {
 }
 
 export const remarkStructureDefaultOptions = {
-  types: ['heading', 'paragraph', 'blockquote', 'tableCell', 'mdxJsxFlowElement'],
+  types: ['heading', 'paragraph', 'blockquote', 'table', 'mdxJsxFlowElement'],
   mdxTypes(node) {
     return !node.children || node.children.length === 0;
   },
@@ -133,6 +136,7 @@ export function remarkStructure(
   return (tree, file) => {
     const data: StructuredData = { contents: [], headings: [] };
     let lastHeading: string | undefined;
+    let tables = 0;
 
     // Fumadocs OpenAPI Generated Structured Data
     if (file.data.frontmatter) {
@@ -156,12 +160,31 @@ export function remarkStructure(
         }
       },
     };
+    const stringifyCells = (row: TableRow) =>
+      row.children.map((cell) =>
+        stringify.call(this, { type: 'paragraph', children: cell.children }, stringifierCtx).trim(),
+      );
 
     visit(tree, (element) => {
       if (!types(element)) return;
       switch (element.type) {
         case 'root':
           return;
+        case 'table': {
+          const [head, ...rows] = element.children;
+          const header = stringifyCells(head);
+          const table = `table-${tables++}`;
+          for (const row of rows)
+            data.contents.push(
+              tableRowToStructuredData({
+                table,
+                heading: lastHeading,
+                row: stringifyCells(row),
+                header,
+              }),
+            );
+          return 'skip';
+        }
         case 'mdxJsxFlowElement':
         case 'mdxJsxTextElement':
           if (!mdxTypes(element)) return;

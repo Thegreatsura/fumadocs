@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { compileMdx } from '@/compile';
 import { applySatteriPreset } from '@/preset';
-import type { StructuredData } from '@/remark-structure';
+import type { StructuredData, StructureOptions } from '@/remark-structure';
 
-async function compile(source: string) {
-  const options = await applySatteriPreset({ rehypeCodeOptions: false })('bundler');
+async function compile(source: string, remarkStructureOptions?: StructureOptions) {
+  const options = await applySatteriPreset({ rehypeCodeOptions: false, remarkStructureOptions })(
+    'bundler',
+  );
   const result = await compileMdx({ source, filePath: '/test.mdx', options });
   return result.data?.structuredData as StructuredData;
 }
@@ -25,6 +27,22 @@ describe('remark-structure', () => {
 
     expect(data.contents[0]).toEqual({ heading: undefined, content: 'intro text' });
     expect(data.contents[1]).toEqual({ heading: 'section', content: 'body' });
+  });
+
+  it('records a table row with the header row', async () => {
+    const data = await compile('| a | **b** |\n| :- | -: |\n| `x \\| y` | [link](/l) |');
+
+    expect(data.contents).toMatchInlineSnapshot(`
+      [
+        {
+          "content": "| a | b |
+      | --- | --- |
+      | x \\| y | link |",
+          "heading": undefined,
+          "table": "table-0",
+        },
+      ]
+    `);
   });
 
   it('exports empty structured data for documents without matches', async () => {
@@ -63,23 +81,41 @@ describe('remark-structure: stringify', () => {
   });
 
   it('keeps authored elements as a single-line tag', async () => {
-    const options = await applySatteriPreset({
-      rehypeCodeOptions: false,
-      remarkStructureOptions: {
-        stringify: { filterElement: (node) => node.name === 'TypeTable' },
-      },
-    })('bundler');
-    const result = await compileMdx({
-      source: `## API\n\n<TypeTable\n  type={{\n    percentage: {\n      description: 'The percentage of scroll position to display the roll button',\n      type: 'number',\n    },\n  }}\n/>\n`,
-      filePath: '/test.mdx',
-      options,
-    });
+    const data = await compile(
+      `## API\n\n<TypeTable\n  type={{\n    percentage: {\n      description: 'The percentage of scroll position to display the roll button',\n      type: 'number',\n    },\n  }}\n/>\n`,
+      { stringify: { filterElement: (node) => node.name === 'TypeTable' } },
+    );
 
-    expect((result.data?.structuredData as StructuredData).contents).toMatchInlineSnapshot(`
+    expect(data.contents).toMatchInlineSnapshot(`
       [
         {
           "content": "<TypeTable type="{ percentage: { description: 'The percentage of scroll position to display the roll button', type: '…" />",
           "heading": "api",
+          "table": undefined,
+        },
+      ]
+    `);
+  });
+
+  it('keeps the Markdown of table cells', async () => {
+    const source = '| a | **b** |\n| :- | -: |\n| `x \\| y` | [link](/l) |\n| 2 | 3 |\n';
+    const data = await compile(source, { stringify: true });
+
+    expect(data.contents).toMatchInlineSnapshot(`
+      [
+        {
+          "content": "| a | **b** |
+      | --- | --- |
+      | \`x \\| y\` | link |",
+          "heading": undefined,
+          "table": "table-0",
+        },
+        {
+          "content": "| a | **b** |
+      | --- | --- |
+      | 2 | 3 |",
+          "heading": undefined,
+          "table": "table-0",
         },
       ]
     `);

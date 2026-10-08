@@ -1,7 +1,8 @@
 import type { MdastPluginDefinition, MdastVisitorContext } from 'satteri';
-import type { Nodes } from 'mdast';
+import type { Nodes, TableRow } from 'mdast';
 import type { StructuredData } from 'fumadocs-core/mdx-plugins/remark-structure';
-import { createStringifier, type Stringifier } from './stringifier';
+import { tableRowToStructuredData } from 'fumadocs-core/search';
+import { createStringifier, offsets, type Stringifier } from './stringifier';
 import type { ExtraPluginHooks } from './compile';
 
 export interface StructureOptions {
@@ -32,6 +33,7 @@ const STRUCTURE_VISITORS = [
   'heading',
   'paragraph',
   'blockquote',
+  'table',
   'tableCell',
   'mdxJsxFlowElement',
 ] as const;
@@ -41,10 +43,20 @@ interface ContentRecord {
   heading: string | undefined;
   /** set for heading records */
   id?: string;
+  table?: string;
+  /** set for generated records */
+  content?: string;
+}
+
+interface TableRecord {
+  heading: string | undefined;
+  table: string;
+  head: TableRow;
+  rows: TableRow[];
 }
 
 export function remarkStructure({
-  types = ['heading', 'paragraph', 'blockquote', 'tableCell', 'mdxJsxFlowElement'],
+  types = ['heading', 'paragraph', 'blockquote', 'table', 'mdxJsxFlowElement'],
   mdxTypes = (node) => !('children' in node) || node.children.length === 0,
   stringify = false,
   exportAs = true,
@@ -55,16 +67,42 @@ export function remarkStructure({
 
   const plugin: ExtraPluginHooks & { (): MdastPluginDefinition } = () => {
     const data: StructuredData = { contents: [], headings: [] };
-    const records: ContentRecord[] = [];
+    const records: (ContentRecord | TableRecord)[] = [];
     let lastHeading: string | undefined;
+    let tables = 0;
     let s: Stringifier;
+
+    function stringifyCells(row: TableRow, ctx: MdastVisitorContext): string[] {
+      return row.children.map((cell) => {
+        // a cell spans its pipes, slice its content instead
+        const first = cell.children[0];
+        const last = cell.children[cell.children.length - 1];
+        const start = stringify && first ? offsets(first)?.start : undefined;
+        const end = last && offsets(last)?.end;
+        if (start !== undefined && end !== undefined) return s.slice(start, end).trim();
+        return ctx.textContent(cell).trim();
+      });
+    }
 
     function visit(node: Nodes) {
       if (stringify && (node.type === 'mdxJsxFlowElement' || node.type === 'mdxJsxTextElement')) {
         // elements without a Markdown form become their text content in records
         if (!filterElement?.(node)) s.flatten(node);
       }
+
+      // generated records, in place of the node
+      if (node.data?.structuredData) {
+        for (const { heading, content, table } of node.data.structuredData.contents)
+          records.push({ node, heading: heading ?? lastHeading, table, content });
+        return;
+      }
+
       if (!matchType(node)) return;
+      if (node.type === 'table') {
+        const [head, ...rows] = node.children;
+        records.push({ heading: lastHeading, table: `table-${tables++}`, head, rows });
+        return;
+      }
       if (
         (node.type === 'mdxJsxFlowElement' || node.type === 'mdxJsxTextElement') &&
         !mdxTypes(node)
@@ -101,14 +139,29 @@ export function remarkStructure({
       },
       after(_root: unknown, ctx: MdastVisitorContext) {
         for (const record of records) {
+          if ('rows' in record) {
+            const header = stringifyCells(record.head, ctx);
+            for (const row of record.rows)
+              data.contents.push(
+                tableRowToStructuredData({
+                  table: record.table,
+                  heading: record.heading,
+                  row: stringifyCells(row, ctx),
+                  header,
+                }),
+              );
+            continue;
+          }
+
           // heading text is already plain, remark-heading stripped its markers
           const content = (
-            stringify && !record.id ? s.stringify(record.node) : ctx.textContent(record.node)
+            record.content ??
+            (stringify && !record.id ? s.stringify(record.node) : ctx.textContent(record.node))
           ).trim();
           if (content.length === 0) continue;
 
           if (record.id) data.headings.push({ id: record.id, content });
-          else data.contents.push({ heading: record.heading, content });
+          else data.contents.push({ heading: record.heading, content, table: record.table });
         }
       },
       ...Object.fromEntries(STRUCTURE_VISITORS.map((key) => [key, visit])),
