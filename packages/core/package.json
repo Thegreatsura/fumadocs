@@ -1,6 +1,6 @@
 {
   "name": "fumadocs-core",
-  "version": "16.16.2",
+  "version": "16.17.1",
   "description": "The React.js library for building a documentation website",
   "keywords": [
     "Docs",
@@ -133,7 +133,6 @@
     "shiki": "^4.5.0",
     "tinyglobby": "^0.2.17",
     "unified": "^11.0.5",
-    "unist-util-visit": "^5.1.0",
     "vfile": "^6.0.3",
     "yaml": "^2.9.1",
     "zbsearch": "^4.0.1"

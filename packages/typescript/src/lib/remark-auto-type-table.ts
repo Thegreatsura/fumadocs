@@ -1,11 +1,10 @@
-import type { Root } from 'mdast';
+import type { Root, RootContent } from 'mdast';
 import type { Nodes } from 'hast';
 import type { Transformer } from 'unified';
 import type { Expression, ExpressionStatement, ObjectExpression } from 'estree';
 import { createGenerator, type DocEntry, type GeneratedDoc, type Generator } from '@/lib/base';
 import { type MarkdownRenderer, markdownRenderer, type ShikiOptions } from '@/markdown';
 import { valueToEstree } from 'estree-util-value-to-estree';
-import { visit } from 'unist-util-visit';
 import { type BaseTypeTableProps, type GenerateTypeTableOptions } from '@/lib/type-table';
 import { toEstree } from 'hast-util-to-estree';
 import { type ParameterTag, parseTags } from '@/lib/parse-tags';
@@ -13,7 +12,7 @@ import type { MdxJsxAttribute, MdxJsxExpressionAttribute, MdxJsxFlowElement } fr
 import type { VFile } from 'vfile';
 import type { StructuredData } from 'fumadocs-core/mdx-plugins/remark-structure';
 import { tableRowToStructuredData } from 'fumadocs-core/search';
-import { replaceSource } from 'fumadocs-core/mdx-plugins/stringifier';
+import { markdownTable, replaceSource } from 'fumadocs-core/mdx-plugins/stringifier';
 
 function objectBuilder() {
   const out: ObjectExpression = {
@@ -164,14 +163,10 @@ export function typeTableToStructuredData(
 export function typeTableToMarkdown(doc: GeneratedDoc): string {
   let out = `### ${doc.name}\n\n`;
   if (doc.description) out += `${doc.description.trim()}\n\n`;
-  out += '| Prop | Type | Description |\n| --- | --- | --- |';
-  for (const entry of doc.entries) {
-    out += '\n|';
-    for (const cell of typeTableRow(entry))
-      out += ` ${cell.replace(/\s*\n\s*/g, ' ').replaceAll('|', '\\|')} |`;
-  }
+  const rows = [['Prop', 'Type', 'Description']];
+  for (const entry of doc.entries) rows.push(typeTableRow(entry));
 
-  return out;
+  return out + markdownTable(rows);
 }
 
 function typeTableRow(entry: DocEntry): string[] {
@@ -282,8 +277,8 @@ export function remarkAutoTypeTable(
   return async (tree, file) => {
     const queue: Promise<void>[] = [];
 
-    visit(tree, 'mdxJsxFlowElement', (node) => {
-      if (node.name !== name) return;
+    walk(tree, (node) => {
+      if (node.type !== 'mdxJsxFlowElement' || node.name !== name) return;
       const props: TypeTableProps = {};
       const attributes: (MdxJsxAttribute | MdxJsxExpressionAttribute)[] = [];
 
@@ -340,4 +335,13 @@ export function remarkAutoTypeTable(
 
     await Promise.all(queue);
   };
+}
+
+/** visit a tree in document order, returning `skip` skips the children of a node */
+function walk(
+  node: Root | RootContent,
+  visitor: (node: Root | RootContent) => 'skip' | void,
+): void {
+  if (visitor(node) === 'skip' || !('children' in node)) return;
+  for (const child of node.children) walk(child, visitor);
 }

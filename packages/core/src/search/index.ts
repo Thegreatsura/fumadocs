@@ -1,8 +1,9 @@
-import type { Root } from 'mdast';
+import type { Nodes, Root } from 'mdast';
 import type { ReactNode } from 'react';
 import { remark } from 'remark';
-import { visit } from 'unist-util-visit';
 import type { StructuredDataContent } from '@/mdx-plugins/remark-structure';
+import { walk } from '@/mdx-plugins/utils';
+import { markdownTable } from '@/mdx-plugins/stringifier';
 import { buildRegexFromQuery } from './highlight';
 
 export interface SortedResult<Content = string> {
@@ -39,19 +40,9 @@ export function tableRowToStructuredData({
   /** the cells of the header row, tables like the props of type tables have none */
   header?: string[];
 }): StructuredDataContent {
-  const formatRow = (cells: string[]) => {
-    let out = '|';
-    for (const cell of cells)
-      out += ` ${cell.replace(/\s*\n\s*/g, ' ').replace(/(?<!\\)\|/g, '\\|')} |`;
-    return out;
-  };
-  const delimiter = `|${' --- |'.repeat((header ?? row).length)}`;
-
   return {
     heading,
-    content: header
-      ? `${formatRow(header)}\n${delimiter}\n${formatRow(row)}`
-      : `${formatRow(row)}\n${delimiter}`,
+    content: markdownTable(header ? [header, row] : [row]),
     table,
   };
 }
@@ -124,7 +115,8 @@ export function createContentHighlighter(query: string | RegExp) {
 }
 
 function highlightInTree(tree: Root, regex: RegExp) {
-  visit(tree, 'text', (node) => {
+  walk<Nodes>(tree, (node) => {
+    if (node.type !== 'text') return;
     let out = '';
     const content = node.value;
 
