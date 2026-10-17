@@ -10,6 +10,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from 'shared-api/components/select';
+import {
+  captionedCodeBlock,
+  cardCodeBlock,
+  exampleCardClassName,
+  ExampleHeader,
+  ExampleSelect,
+} from 'shared-api/components/example';
 import { ClientCodeBlock } from '@/ui/components/codeblock';
 import { Markdown } from '@/ui/components/markdown';
 import { MethodLabel } from '@/ui/components/method-label';
@@ -24,27 +31,22 @@ import {
 import { useOpenAPI, useRenderContext } from '@/utils/create-page';
 import { cn } from '@/utils/cn';
 
-/** a code block filling its card */
-const cardCodeBlock = {
-  className: 'flex min-h-0 flex-col rounded-none border-0 bg-transparent shadow-none',
-  viewportProps: { className: 'min-h-0' },
-};
-/** a code block under its caption */
-const captionedCodeBlock = { ...cardCodeBlock, viewportProps: { className: 'min-h-0 pt-2' } };
-
 export function UsageTabs() {
   const ctx = useRenderContext();
   const t = useTranslations({ note: 'operation page' });
   const { operation, codeUsages } = useOperation();
+  const selectable = !operation['x-exclusiveCodeSample'];
 
   const slots = {
-    selector: operation['x-exclusiveCodeSample'] ? null : <UsageTabsSelector />,
+    // the default usage tabs select example requests in their title
+    selector: ctx.content?.renderAPIExampleUsageTabs && selectable ? <UsageTabsSelector /> : null,
     usageTabs: ctx.content?.renderAPIExampleUsageTabs ? (
       ctx.content.renderAPIExampleUsageTabs(codeUsages, ctx)
     ) : (
       <CodeUsages
         title={t('Example Request')}
-        className="mb-4 flex min-h-0 flex-col overflow-hidden rounded-xl border bg-fd-card"
+        selectExample={selectable}
+        className={cn('mb-4', exampleCardClassName)}
       />
     ),
     responseTabs: <ResponseTabs />,
@@ -91,47 +93,6 @@ function UsageTabsSelector() {
   );
 }
 
-function ExampleHeader({ title, children }: { title: ReactNode; children?: ReactNode }) {
-  return (
-    <div className="flex h-10 shrink-0 items-center gap-2 border-b ps-4 pe-1.5 text-[0.8125rem] font-medium">
-      <span className="me-auto truncate">{title}</span>
-      {children}
-    </div>
-  );
-}
-
-export function ExampleSelect({
-  items,
-  value,
-  onValueChange,
-  className,
-}: {
-  items: { value: string; label: ReactNode }[];
-  value: string;
-  onValueChange: (value: string) => void;
-  className?: string;
-}) {
-  return (
-    <Select items={items} value={value} onValueChange={(v) => v !== null && onValueChange(v)}>
-      <SelectTrigger
-        className={cn(
-          'h-7 w-fit max-w-1/2 shrink-0 gap-1.5 border-0 bg-transparent px-2 py-0 text-[0.8125rem] font-medium text-fd-muted-foreground hover:text-fd-accent-foreground focus:ring-0 focus-visible:ring-2 data-popup-open:bg-fd-accent data-popup-open:text-fd-accent-foreground',
-          className,
-        )}
-      >
-        <SelectValue className="min-w-0 truncate" />
-      </SelectTrigger>
-      <SelectContent align="end">
-        {items.map((item) => (
-          <SelectItem key={item.value} value={item.value} className="text-[0.8125rem]">
-            {item.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  );
-}
-
 // the selected code usage applies to every code usage of the session
 const storageKey = 'fumadocs_openapi_requests';
 const listeners = new Set<() => void>();
@@ -151,14 +112,18 @@ function select(id: string) {
 /** the code usages of the selected example request, with a select of their languages */
 export function CodeUsages({
   title,
+  selectExample = false,
   className,
   viewportClassName,
 }: {
   title: ReactNode;
+  /** select the example request in place of the title, when there are several */
+  selectExample?: boolean;
   className?: string;
   viewportClassName?: string;
 }) {
   const generators = useOperation().codeUsages.map();
+  const examples = useExampleRequests();
   const selected = useSyncExternalStore(
     subscribe,
     () => sessionStorage.getItem(storageKey),
@@ -172,10 +137,27 @@ export function CodeUsages({
     value,
     label: item.label ?? item.lang,
   }));
+  const example =
+    selectExample && examples.items.length > 1
+      ? examples.items.find((item) => item.id === examples.selected)
+      : undefined;
 
   return (
     <div className={className}>
-      <ExampleHeader title={title}>
+      <ExampleHeader title={!example && title}>
+        {example && (
+          <ExampleSelect
+            items={examples.items.map((item) => ({
+              value: item.id,
+              label: item.name,
+              description: item.description && <Markdown md={item.description} />,
+            }))}
+            value={example.id}
+            onValueChange={examples.select}
+            align="start"
+            className="-ms-2 me-auto max-w-none min-w-0 shrink text-fd-foreground"
+          />
+        )}
         {items.length > 1 ? (
           <ExampleSelect items={items} value={id} onValueChange={select} />
         ) : (
@@ -241,6 +223,7 @@ function ResponseTabsDefaultContent({ tabs }: { tabs: ResponseTab[] }) {
                 items={examples.map((item, i) => ({ value: String(i), label: item.label }))}
                 value={String(index)}
                 onValueChange={(v) => setIndex(Number(v))}
+                align="start"
                 className="-ms-2"
               />
             )}
@@ -263,7 +246,7 @@ function ResponseTabsDefaultContent({ tabs }: { tabs: ResponseTab[] }) {
   }
 
   return (
-    <div className="mb-4 flex min-h-0 flex-col overflow-hidden rounded-xl border bg-fd-card">
+    <div className={cn('mb-4', exampleCardClassName)}>
       <ExampleHeader title={t('Example Response')}>
         {schema !== undefined && (
           <label className="flex shrink-0 items-center gap-2 text-fd-muted-foreground">
@@ -318,7 +301,7 @@ function RequestTabsDefaultContent() {
   };
 
   return (
-    <div className="flex min-h-0 flex-col overflow-hidden rounded-xl border bg-fd-card">
+    <div className={exampleCardClassName}>
       <ExampleHeader title={t('Example Requests')}>
         {items.length > 1 && (
           <ExampleSelect

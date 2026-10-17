@@ -1,3 +1,38 @@
+## fumadocs-openapi@12.5.2
+
+### Generated files
+
+- `watch` of `generateFiles()` watches the files of record inputs, like `{ petstore: './petstore.yaml' }`.
+- Index cards with quotes in titles or descriptions generate valid MDX.
+- Generated pages keep backslashes in document IDs, like Windows paths.
+- `staticSource()` and `generateFiles()` are faster on large documents, `per: 'tag'` groups operations in one pass.
+
+### Playground details
+
+- The selected server is highlighted in the server list.
+- Server list items highlight on hover without a fade.
+- Edits of server variables no longer apply to the next selected server.
+- Boolean fields line up with the values of other fields.
+
+## fumadocs-openapi@12.5.1
+
+### Faster API pages and search indexes
+
+- Schema UI generates the schemas it shows when they open, instead of every schema reachable from the root.
+- Inline schemas are identified by their position, links to their properties copied before this version no longer open them.
+- TypeScript definitions of bodies are generated when copied.
+- Search indexes take breadcrumbs from one walk of the page tree, instead of a search for each page.
+
+### Example request select in the card title
+
+- The select of example requests replaces the title of the example request card, its options show the descriptions of examples.
+- `renderAPIExampleLayout()` gets the `selector` slot only with `renderAPIExampleUsageTabs()`.
+- Options with descriptions line up their labels with the select.
+
+### Refuse schemas not listed in `input`
+
+- `getSchema()` and page preloads throw for schema IDs not listed in `input`, instead of loading them as file paths or URLs.
+
 ## fumadocs-openapi@12.5.0
 
 ### All security schemes in the API playground

@@ -6,7 +6,7 @@ import { RequestTabs, UsageTabs } from '@/ui/operation/usage-tabs';
 import { MethodLabel } from '@/ui/components/method-label';
 import { SchemaUI } from '@/ui/components/schema';
 import { Badge } from 'shared-api/components/badge';
-import { useOpenAPI, useRenderContext, useTypeScriptDefinitions } from '@/utils/create-page';
+import { useOpenAPI, useRenderContext } from '@/utils/create-page';
 import {
   OperationProvider,
   type OperationCallback,
@@ -26,8 +26,8 @@ import { buttonVariants } from 'fumadocs-ui/components/ui/button';
 import { Check, ChevronRight, Copy, Plus, X } from 'lucide-react';
 import PlaygroundClient from '@/ui/playground/client';
 import { EndpointBar } from '@/ui/components/endpoint';
-import { Segmented, SegmentedList, SegmentedPanel } from '@/ui/components/segmented';
-import { DialogPopup } from '@/ui/components/dialog';
+import { Segmented, SegmentedList, SegmentedPanel } from 'shared-api/components/segmented';
+import { DialogPopup } from 'shared-api/components/dialog';
 
 export interface OperationProps extends PageOperationProps {
   headingLevel?: number;
@@ -354,11 +354,7 @@ function MediaContent({
   request?: boolean;
 }) {
   const { method } = useOperation();
-  const ts = useTypeScriptDefinitions(schema, {
-    name: request ? 'RequestBody' : 'ResponseBody',
-    readOnly: !request,
-    writeOnly: request,
-  });
+  const { doc, generateTypeScriptDefinitions } = useOpenAPI();
 
   if (!schema)
     return (
@@ -374,8 +370,18 @@ function MediaContent({
         as: 'body',
         required,
         selector,
-        actions: ts && (
-          <CopyTypeScript code={ts} name={request ? 'request body' : 'response body'} />
+        actions: generateTypeScriptDefinitions && (
+          <CopyTypeScript
+            name={request ? 'request body' : 'response body'}
+            generate={() =>
+              generateTypeScriptDefinitions(schema, {
+                name: request ? 'RequestBody' : 'ResponseBody',
+                readOnly: !request,
+                writeOnly: request,
+                doc,
+              })
+            }
+          />
         ),
       }}
       root={schema}
@@ -385,9 +391,21 @@ function MediaContent({
   );
 }
 
-function CopyTypeScript({ code, name }: { code: string; name: string }) {
+function CopyTypeScript({
+  name,
+  generate,
+}: {
+  name: string;
+  generate: () => string | undefined | Promise<string | undefined>;
+}) {
   const t = useTranslations({ note: 'TypeScript definitions' });
-  const [isChecked, onCopy] = useCopyButton(() => navigator.clipboard.writeText(code));
+  const [isChecked, onCopy] = useCopyButton(() => {
+    const code = generate();
+    if (typeof code === 'string') return navigator.clipboard.writeText(code);
+    return Promise.resolve(code).then((code) => {
+      if (code) return navigator.clipboard.writeText(code);
+    });
+  });
 
   return (
     <button

@@ -1,6 +1,6 @@
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, test, vi } from 'vitest';
-import { generateFilesOnly, type OutputFile } from '@/generate-file';
+import { generateFiles, generateFilesOnly, type OutputFile } from '@/generate-file';
 import { createOpenAPI } from '@/server';
 import path from 'node:path';
 
@@ -205,6 +205,63 @@ describe('Generate documents', () => {
 
     expect(withEmpty).toEqual(without);
   });
+
+  test('Generate Files - JSX attributes keep quotes and backslashes', async () => {
+    const out = await generateFilesOnly({
+      input: createOpenAPI({
+        input: {
+          'C:\\docs\\api.yaml': {
+            openapi: '3.2.0',
+            info: { title: 'API', version: '1.0.0' },
+            paths: {
+              '/light': {
+                get: {
+                  operationId: 'light',
+                  summary: 'The "Light" route',
+                  description: 'Say "hi"',
+                },
+              },
+            },
+          },
+        },
+      }),
+      index: {
+        url: { baseUrl: '/docs', contentDir: '' },
+        items: [{ path: 'index' }],
+      },
+    });
+
+    expect(out.find((file) => file.path === 'light.mdx')?.content).toContain(
+      '<OpenAPIPage document="C:\\docs\\api.yaml" ',
+    );
+    expect(out.find((file) => file.path === 'index.mdx')?.content).toContain(
+      '<Card href="/docs/light" title={"The \\"Light\\" route"} description={"Say \\"hi\\""} />',
+    );
+  });
+
+  test('Generate Files - watch the input files', async () => {
+    const file = path.join(cwd, './fixtures/petstore.yaml');
+    const watch = vi.fn(() => ({ on() {} }));
+    vi.doMock('chokidar', () => ({ watch }));
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    await generateFiles({
+      input: createOpenAPI({
+        input: {
+          petstore: file,
+          inline: { openapi: '3.2.0', info: { title: 'Inline', version: '1.0.0' } },
+        },
+      }),
+      output: '',
+      watch: true,
+      // nothing to write
+      beforeWrite(files) {
+        files.length = 0;
+      },
+    });
+
+    expect(watch).toHaveBeenCalledWith([file], { ignoreInitial: true });
+  });
 });
 
 function stringifyOutput(output: OutputFile[]) {
@@ -217,6 +274,15 @@ function stringifyOutput(output: OutputFile[]) {
   }
   return lines.join('\n\n');
 }
+
+test('refuses documents not listed in input', async () => {
+  const server = createOpenAPI({ input: [path.join(cwd, './fixtures/petstore.yaml')] });
+
+  await expect(server.getSchema(path.join(cwd, './fixtures/museum.yaml'))).rejects.toThrow(
+    'is not listed in "input"',
+  );
+  await expect(server.getSchema('constructor')).rejects.toThrow('is not listed in "input"');
+});
 
 test('OAuth handler sends users back to the page that started the flow', () => {
   const handler = createOpenAPI().createOAuthHandler();
