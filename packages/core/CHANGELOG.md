@@ -1,3 +1,25 @@
+## fumadocs-core@16.17.7
+
+### Imports across Windows drives
+
+- `remarkImage` and generated `.source` files import files on another drive or a UNC path by their absolute path.
+- Generated imports of files in dot-folders are prefixed with `./`.
+
+Fix [#3723](https://github.com/fuma-nama/fumadocs/issues/3723)
+
+## fumadocs-core@16.17.6
+
+### i18n `parser: 'none'`
+
+- `parser: 'none'` no longer parses locales from file paths, files without a `locale` belong to the default language.
+
+### Generated pages in every language
+
+- Virtual files accept a `locale`, `$` for every language, instead of parsing it from their path.
+- Pages from `staticSource()` and `dynamicSource()` of OpenAPI, AsyncAPI and GraphQL are shared with every language of `loader()`.
+
+Fix [#3720](https://github.com/fuma-nama/fumadocs/issues/3720)
+
 ## fumadocs-core@16.17.5
 
 ### Faster API pages and search indexes
