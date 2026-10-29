@@ -536,43 +536,38 @@ export default function Layout({ children }: { children: ReactNode }) {
       ...shared(input, false),
       'lib/source.ts': `import { getCollection } from 'astro:content';
 import { loader } from 'fumadocs-core/source';
-${i18n ? "import type { SerializedPageTree } from 'fumadocs-core/source/client';\n" : ''}import { toFumadocsSource } from '@fumadocs/astro/source';
+import { toFumadocsSource } from '@fumadocs/astro/source';
 import { docsRoute } from './shared';
 ${i18n ? i18nImport : ''}
 export const source = loader({
   source: toFumadocsSource(await getCollection('docs'), await getCollection('meta')),
   baseUrl: docsRoute,${i18n ? '\n  i18n,' : ''}
 });
-
-${
-  i18n
-    ? `// the same for every page of a language, serialize them once
-export const pageTrees: Record<string, SerializedPageTree> = {};
-for (const lang of i18n.languages)
-  pageTrees[lang] = await source.serializePageTree(source.getPageTree(lang));`
-    : `// the same for every page, serialize it once
-export const pageTree = await source.serializePageTree(source.getPageTree());`
-}
 `,
       'components/mdx.tsx': `import defaultMdxComponents from 'fumadocs-ui/mdx';
 ${i18n ? "import { DynamicLink } from 'fumadocs-core/dynamic-link';\n" : ''}import { DocsBody } from 'fumadocs-ui/layouts/docs/page';
+import type { MDXComponents } from 'mdx/types';
 ${i18n ? "import { ContentProvider, type ProviderProps } from '@/components/provider';\n" : ''}
-// MDX components of docs, they are rendered and hydrated by the Fumadocs integration
-export default {
-  ...defaultMdxComponents,
+export function getMDXComponents(components?: MDXComponents) {
+  return {
+    ...defaultMdxComponents,${i18n ? '\n    // links with the locale, like `/[lang]/docs`\n    DynamicLink,' : ''}
+    ...components,
+  } satisfies MDXComponents;
+}
+
 ${
   i18n
-    ? `  // links with the locale, like \`/[lang]/docs\`
-  DynamicLink,
-  // receives the props of \`<Content />\`
+    ? `// for the Fumadocs integration, \`wrapper\` receives the props of \`<Content />\`
+export default getMDXComponents({
   wrapper: ({ children, ...props }: ProviderProps) => (
     <ContentProvider {...props}>
       <DocsBody>{children}</DocsBody>
     </ContentProvider>
-  ),`
-    : '  wrapper: DocsBody,'
+  ),
+});`
+    : `// for the Fumadocs integration, \`wrapper\` gives the content its prose styles
+export default getMDXComponents({ wrapper: DocsBody });`
 }
-};
 `,
       'components/provider.tsx': `import { navigate } from 'astro:transitions/client';
 import type { ReactNode } from 'react';
@@ -649,14 +644,15 @@ export function Docs({ tree, title, description, toc, children, ...props }: Docs
 import type { GetStaticPaths, InferGetStaticPropsType } from 'astro';
 import Layout from '@/layouts/Layout.astro';
 import { Docs } from '@/components/docs';
-${input.i18n?.optionalLocale ? i18nImport : ''}import { ${i18n ? 'pageTrees' : 'pageTree'}, source } from '@/lib/source';
+${input.i18n?.optionalLocale ? i18nImport : ''}import { source } from '@/lib/source';
 
 ${astroPagePaths(input.i18n)}
 
 type Props = InferGetStaticPropsType<typeof getStaticPaths>;
 
 const { ${i18n ? 'lang, ' : ''}page } = Astro.props;
-const { Content, toc } = await page.data.render();
+const { body: Content, toc } = await page.data.load();
+const pageTree = await source.serializePageTree(source.getPageTree(${i18n ? 'lang' : ''}));
 ${i18n ? 'const provider = { lang, pathname: Astro.url.pathname, params: Astro.params };\n' : ''}---
 
 <Layout
@@ -667,7 +663,7 @@ ${i18n ? 'const provider = { lang, pathname: Astro.url.pathname, params: Astro.p
     client:load
     transition:persist="docs"
     ${i18n ? '{...provider}' : 'pathname={Astro.url.pathname}\n    params={Astro.params}'}
-    tree={${i18n ? 'pageTrees[lang]' : 'pageTree'}}
+    tree={pageTree}
     title={page.data.title}
     description={page.data.description}
     toc={toc}
@@ -689,12 +685,11 @@ export const GET: APIRoute = ${input.static ? '() => server.staticGET()' : '({ r
 };
 
 export const astroContentConfig = `import { defineCollection } from 'astro:content';
-import { docsLoader, metaLoader } from '@fumadocs/astro/loaders';
-import { metaSchema, pageSchema } from 'fumadocs-core/source/schema';
+import { metaLoader, pageLoader } from '@fumadocs/astro/loaders';
 
 export const collections = {
-  docs: defineCollection({ loader: docsLoader(), schema: pageSchema }),
-  meta: defineCollection({ loader: metaLoader(), schema: metaSchema }),
+  docs: defineCollection({ loader: pageLoader() }),
+  meta: defineCollection({ loader: metaLoader() }),
 };
 `;
 
