@@ -1,7 +1,9 @@
 import Link from 'next/link';
+import { asMarkdown } from 'fumadocs-core/server';
 import { ArrowUpRight } from 'lucide-react';
-import { command, frameworks } from '../../content';
+import { command, copy, frameworks, plain } from '../../content';
 import { Command } from '../../ui/command';
+import { block, url } from '../../markdown';
 import { Figure } from '../../ui/figure';
 import { Glitch } from './glitch';
 import { Stage } from './stage';
@@ -12,6 +14,20 @@ const invert =
 /** a screen below the menu: the text and the sky over the horizon, the sky beside the text on
  * desktop and under it on phones */
 export function Hero() {
+  if (asMarkdown())
+    return block`
+      # Fumadocs
+
+      > ${plain(copy.hero.title)}
+
+      ${copy.hero.says.flat().join(' ')}
+
+      - [Get started](${url('/docs')})
+      - Create a project: \`${command}\`
+      - Runs on: ${frameworks.map((framework) => `[${framework.name}](${url(framework.href)})`).join(', ')}
+      - For LLMs: [llms.txt](${url('/llms.txt')}) indexes the docs, [llms-full.txt](${url('/llms-full.txt')}) has all of them; add \`.md\` to a docs URL for its Markdown.
+    `;
+
   return (
     <Figure
       id="fumadocs"
@@ -33,7 +49,7 @@ export function Hero() {
         <div className="mt-8 flex flex-wrap items-center gap-3">
           <Link
             href="/docs"
-            className={`inline-flex h-11 items-center justify-center border border-lp-line-strong bg-lp-yellow px-5 font-medium text-[#121210] max-sm:w-full ${invert}`}
+            className={`inline-flex h-11 items-center justify-center border border-lp-line-strong bg-lp-yellow px-5 font-medium text-lp-on-yellow max-sm:w-full ${invert}`}
           >
             Get started
           </Link>
@@ -53,7 +69,11 @@ export function Hero() {
           {frameworks.map((framework, i) => (
             <span key={framework.name}>
               {i > 0 && <> ·&nbsp;</>}
-              <Link href={framework.href} className={`whitespace-nowrap text-lp-ink ${invert}`}>
+              <Link
+                href={framework.href}
+                prefetch={false}
+                className={`whitespace-nowrap text-lp-ink ${invert}`}
+              >
                 {framework.name}
               </Link>
             </span>

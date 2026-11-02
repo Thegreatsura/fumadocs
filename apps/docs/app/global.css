@@ -42,9 +42,26 @@
   /* the machine's voice, loaded by the landing layout; the sans stands in until it arrives, its
      widths within a few percent, so no label wraps or jumps at the swap */
   --font-pixel: var(--font-geist-pixel), var(--font-sans);
-  /* a caret's blink; its keyframes are in app/(landing)/landing.css */
+  /* its crisp size, in its 16px line */
+  --text-pixel: 13.16px;
+  --text-pixel--line-height: 1rem;
+  /* a caret's blink */
   --animate-lp-caret: lp-caret 1s steps(1, end) infinite;
+  /* a new status line prints in, left to right: the paper over it steps off to the right */
   --animate-lp-print: lp-print 0.3s steps(12);
+
+  @keyframes lp-caret {
+    50% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes lp-print {
+    from {
+      translate: 0;
+    }
+  }
+
   /* the sheet's width (`--lp-max`): from here its frame lines and corner marks show */
   --breakpoint-sheet: 87.5rem;
   /* a link preview's ratio, that of every site screenshot */
@@ -94,10 +111,15 @@
   --color-fd-primary: var(--framework-color);
 }
 
+.astro {
+  --color-fd-primary: var(--astro-color);
+}
+
 :root {
   --headless-color: hsl(250, 80%, 54%);
   --framework-color: hsl(41, 100%, 40%);
   --ui-color: hsl(217, 100%, 58%);
+  --astro-color: hsl(16, 100%, 50%);
 }
 
 html {
@@ -117,6 +139,7 @@ body {
   --headless-color: hsl(250 100% 80%);
   --framework-color: #fff383;
   --ui-color: #a9ceff;
+  --astro-color: hsl(20, 100%, 72%);
 }
 
 /* #region pele */

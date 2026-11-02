@@ -15,6 +15,7 @@ const tileSizes =
 
 const invert =
   'group-hover:bg-lp-ink group-hover:text-lp-paper group-focus-visible:bg-lp-ink group-focus-visible:text-lp-paper';
+
 /** a cell overlaps its neighbours by its 1px frame, so the grid's outer edges are its frames' */
 const cell = '-ms-px -mt-px';
 const frame = 'h-full border border-lp-line-strong';
@@ -36,17 +37,14 @@ function Featured({ site }: { site: Required<ShowcaseObject> }) {
         )}
       >
         <TitleBar
-          title={<span className={cn('-mx-2 block px-2 font-pixel', invert)}>{site.name}</span>}
+          title={<span className={`-mx-2 block px-2 font-pixel ${invert}`}>{site.name}</span>}
         />
         <span className="relative block aspect-og overflow-hidden">
           <Image src={site.image} alt="" fill sizes={featuredSizes} className="object-cover" />
         </span>
         {/* what it is, a dotted leader on the baseline, where it lives */}
         <span
-          className={cn(
-            'mt-auto flex items-baseline gap-2 border-t border-lp-line-strong px-3 py-2.5 text-xs leading-4 font-medium',
-            invert,
-          )}
+          className={`mt-auto flex items-baseline gap-2 border-t border-lp-line-strong px-3 py-2.5 text-xs leading-4 font-medium ${invert}`}
         >
           <span className="text-lp-ink-2 group-hover:text-lp-paper group-focus-visible:text-lp-paper">
             {kinds[site.url]}
@@ -84,7 +82,7 @@ export function VercelLinks() {
           href={item.url}
           target="_blank"
           rel="noreferrer noopener"
-          className="group flex min-h-9 flex-1 items-center px-3 text-xs font-medium hover:bg-lp-ink hover:text-lp-paper focus-visible:bg-lp-ink focus-visible:text-lp-paper focus-visible:outline-none"
+          className="group flex min-h-9 flex-1 items-center px-3 text-xs font-medium transition-none hover:bg-lp-ink hover:text-lp-paper focus-visible:bg-lp-ink focus-visible:text-lp-paper focus-visible:outline-none"
         >
           <span className="flex flex-1 items-baseline gap-2">
             <span className="text-[15px]">{item.name}</span>
@@ -135,7 +133,9 @@ function Slot() {
       >
         <span aria-hidden className="h-5" />
         <span aria-hidden className="aspect-og" />
-        <span className="absolute inset-2 flex items-center justify-center gap-1.5 border border-dashed border-lp-line-strong px-3 text-center text-sm font-medium group-hover:border-solid group-hover:bg-lp-ink group-hover:text-lp-paper group-focus-visible:bg-lp-ink group-focus-visible:text-lp-paper">
+        <span
+          className={`absolute inset-2 flex items-center justify-center gap-1.5 border border-dashed border-lp-line-strong px-3 text-center text-sm font-medium group-hover:border-solid ${invert}`}
+        >
           Suggest yours
           <ArrowUpRight aria-hidden className="size-4" />
         </span>

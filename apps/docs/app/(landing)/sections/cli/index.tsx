@@ -1,4 +1,5 @@
-import type { CSSProperties, ReactNode } from 'react';
+import type { ReactNode } from 'react';
+import { asMarkdown } from 'fumadocs-core/server';
 import { FileIcon, RotateCcw, Search, SidebarIcon, Text } from 'lucide-react';
 import { Banner } from 'fumadocs-ui/components/banner';
 import { Card, Cards } from 'fumadocs-ui/components/card';
@@ -8,6 +9,7 @@ import pkg from 'fumadocs-ui/package.json';
 import { cn } from '@/lib/cn';
 import { copy } from '../../content';
 import { DITHER_MASKS } from '../../lib/dither';
+import { block, heading, url } from '../../markdown';
 import { Figure, FigureHeader } from '../../ui/figure';
 import { Window } from '../../ui/window';
 import { deliveries, type Entry, type Plan, plans } from './data';
@@ -136,35 +138,19 @@ function rows(entries: Entry[]): ReactNode[] {
   return out;
 }
 
-/** the bubble's tail in hundredths of an em of its line: it drops from the foot's corner, along the
- * bubble's edge, onto the answer's first letter, its root `root` wide */
-const TAIL = { root: 80, drop: 55 };
-
-function em(hundredths: number) {
-  return `${hundredths / 100}em`;
-}
-
 /**
  * The lead asked as a question, set as speech: half the title's size (16px at least) in the titles'
  * medium, paper on the page's ink, a bubble and its tail filled as one shape over the dithered shadow
- * of the desk's hub plate.
+ * of the desk's hub plate. The tail drops from the foot's corner, along the bubble's edge, onto the
+ * answer's first letter, its root `--tail-root` wide.
  */
 function Asked({ children }: { children: string }) {
-  const foot = `calc(100% - ${em(TAIL.drop)})`;
   return (
-    <span
-      className="relative isolate block w-fit font-pixel text-mark leading-none font-normal tracking-normal"
-      style={{ marginBottom: em(TAIL.drop + 50) }}
-    >
+    <span className="relative isolate mb-[calc(var(--tail-drop)+0.5em)] block w-fit font-pixel text-mark leading-none font-normal tracking-normal [--tail-drop:0.55em] [--tail-root:0.8em]">
       <span
         aria-hidden
-        className="absolute inset-x-0 top-0 translate-x-0.75 translate-y-1 bg-lp-ink-2"
-        style={{
-          bottom: `-${em(TAIL.drop)}`,
-          clipPath: `polygon(0 0, 100% 0, 100% ${foot}, ${em(TAIL.root)} ${foot}, 0 100%)`,
-          maskImage: DITHER_MASKS[6],
-          maskSize: '4px 4px',
-        }}
+        className="absolute inset-x-0 top-0 -bottom-(--tail-drop) translate-x-0.75 translate-y-1 bg-lp-ink-2 [clip-path:polygon(0_0,100%_0,100%_calc(100%-var(--tail-drop)),var(--tail-root)_calc(100%-var(--tail-drop)),0_100%)]"
+        style={{ maskImage: DITHER_MASKS[6] }}
       />
       <span className="relative block bg-lp-ink px-[0.75em] py-[0.55em] whitespace-nowrap text-lp-paper [text-box:trim-both_cap_alphabetic]">
         {children}
@@ -172,12 +158,11 @@ function Asked({ children }: { children: string }) {
       {/* a pixel into the bubble, so the two fills meet without a seam */}
       <svg
         aria-hidden
-        viewBox={`0 0 ${TAIL.root} ${TAIL.drop}`}
+        viewBox="0 0 1 1"
         preserveAspectRatio="none"
-        className="absolute top-full left-0 -mt-px overflow-visible fill-lp-ink"
-        style={{ width: em(TAIL.root), height: em(TAIL.drop) }}
+        className="absolute top-full left-0 -mt-px h-(--tail-drop) w-(--tail-root) overflow-visible fill-lp-ink"
       >
-        <path d={`M0 0V${TAIL.drop}L${TAIL.root} 0Z`} />
+        <path d="M0 0V1L1 0Z" />
       </svg>
     </span>
   );
@@ -219,6 +204,16 @@ function Counter({ count }: { count: number }) {
 }
 
 export function Cli() {
+  if (asMarkdown())
+    return block`
+      ${heading(copy.cli)}
+
+      - \`npx @fumadocs/cli customize\` copies a layout into \`layouts/\` and points your route files at it.
+      - \`npx @fumadocs/cli add banner files\` installs components from the Fumadocs registry, with their imports rewritten for your project.
+      - \`npx @fumadocs/cli feature <name>\` sets up a feature, such as \`ai\` or \`search\`, and wires it into your app.
+      - [CLI guide](${url('/docs/cli')})
+    `;
+
   const cells: ReactNode[] = [];
   const editors: ReactNode[] = [];
   const cards: ReactNode[] = [];
@@ -227,8 +222,9 @@ export function Cli() {
   for (let i = 0; i < plans.length; i++) {
     const plan = plans[i];
     for (const delivery of deliveries(plan)) {
-      // each file moved by the engine while it's carried, without a repaint; a later file always
-      // stands nearer the viewer, so the order they come in stacks them
+      // each file moved by the engine while it's carried, without a repaint, in a box with no look
+      // of its own, quick to restyle each frame; a later file always stands nearer the viewer, so
+      // the order they come in stacks them
       cards.push(
         <div
           key={`${plan.id}:${delivery.path}`}
@@ -236,10 +232,12 @@ export function Cli() {
           data-scene={i}
           data-reveals={delivery.reveals.join(' ')}
           inert={i > 0}
-          className="invisible absolute top-0 left-0 flex h-6 origin-top-left items-center gap-1.5 border border-lp-line-strong bg-lp-paper px-2 font-mono text-xs whitespace-nowrap"
+          className="invisible absolute top-0 left-0 origin-top-left"
         >
-          <FileIcon className="size-3.5 text-lp-ink-2" />
-          {delivery.name}
+          <div className="flex h-6 items-center gap-1.5 border border-lp-line-strong bg-lp-paper px-2 font-mono text-xs whitespace-nowrap">
+            <FileIcon className="size-3.5 text-lp-ink-2" />
+            {delivery.name}
+          </div>
         </div>,
       );
     }
@@ -261,7 +259,7 @@ export function Cli() {
           <div className="relative min-h-0 flex-1">
             <div
               data-list
-              className="absolute inset-0 overflow-y-auto [scrollbar-color:var(--lp-ink)_var(--lp-paper)] [scrollbar-width:thin]"
+              className="absolute inset-0 overflow-y-auto scrollbar-thin scrollbar-thumb-lp-ink scrollbar-track-lp-paper"
             >
               {/* a name wider than its column, in a font still loading, breaks instead of spilling */}
               <Files className="rounded-none border-0 bg-transparent py-2 ps-2 pe-1 font-mono wrap-anywhere [&_.ms-2]:ms-1.5 [&_.ps-2]:ps-1 [&_button]:py-0.5 md:[&_button]:text-xs [&_svg]:text-lp-ink-2">
@@ -299,11 +297,7 @@ export function Cli() {
     const text = `npx @fumadocs/cli ${plan.args}`;
     const characters: ReactNode[] = [];
     for (let n = 0; n < text.length; n++) {
-      characters.push(
-        <span key={n} style={{ '--i': n } as CSSProperties}>
-          {text[n]}
-        </span>,
-      );
+      characters.push(<span key={n}>{text[n]}</span>);
     }
     commands.push(
       <code
@@ -311,7 +305,7 @@ export function Cli() {
         data-command
         data-scene={i}
         inert={i > 0}
-        className="col-start-1 row-start-1 block inert:invisible *:[opacity:clamp(0,calc(var(--typed,999)_-_var(--i)),1)]"
+        className="col-start-1 row-start-1 block inert:invisible"
       >
         {characters}
       </code>,

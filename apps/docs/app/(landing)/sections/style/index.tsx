@@ -1,13 +1,35 @@
 import type { ReactNode } from 'react';
-import { copy } from '../../content';
+import { asMarkdown } from 'fumadocs-core/server';
+import { copy, plain } from '../../content';
+import { block, heading, url } from '../../markdown';
 import { Figure, FigureHeader } from '../../ui/figure';
-import { FIRST } from './data';
+import { FIRST, LAYOUTS, TABS, THEME_NAMES, THEMES } from './data';
 import { createHardware } from './hardware';
 import { loadInks } from './presets';
 import { FIRST_POSE, hangRopes } from './scene';
 import { Stage } from './stage';
 
 export async function Style() {
+  if (asMarkdown()) {
+    const lines = ['- Restyle any layout or theme with CSS variables.'];
+    for (const id of TABS) {
+      const tab = copy.style.tabs[id];
+      lines.push(`- [${tab.label}](${url(tab.href)}): ${tab.line}`);
+      if (id !== 'layouts') continue;
+      lines.push(
+        `  - Layouts: ${LAYOUTS.map((layout) => layout.name).join(', ')}`,
+        `  - [Themes](${url('/docs/ui/theme')}): ${THEMES.map((theme) => `${THEME_NAMES[theme]} (\`${theme}\`)`).join(', ')}, each a stylesheet imported as \`@import 'fumadocs-ui/css/<id>.css';\``,
+      );
+    }
+    return block`
+      ${heading(copy.style)}
+
+      ${plain([copy.style.claims.join(' ')])}
+
+      ${lines.join('\n')}
+    `;
+  }
+
   const table = await loadInks();
   // the desk's cables in its first pose settle here, once: the browser takes their shape
   const ropes = hangRopes(FIRST_POSE);

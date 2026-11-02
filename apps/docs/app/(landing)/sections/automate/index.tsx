@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { asMarkdown } from 'fumadocs-core/server';
 import { Card, Cards } from 'fumadocs-ui/components/card';
 import type { CodeBlockProps } from 'fumadocs-ui/components/codeblock';
 import { createServerCodeBlock } from 'fumadocs-ui/components/codeblock.rsc';
@@ -8,9 +9,20 @@ import { ServerCodeBlock } from '@/components/server-codeblock';
 import { apiHighlighter, highlighter } from '@/lib/highlighter';
 import { copy } from '../../content';
 import { DITHER_MASKS } from '../../lib/dither';
+import { block, heading } from '../../markdown';
 import { Figure, FigureHeader, Status } from '../../ui/figure';
 import { Button } from './content/button';
-import { BEFORE, EDIT, EDIT_LINE, FILE, type Output, PAGE, RELEASES, SOURCE } from './data';
+import {
+  BEFORE,
+  EDIT,
+  EDIT_LINE,
+  FILE,
+  type Output,
+  OUTPUTS,
+  PAGE,
+  RELEASES,
+  SOURCE,
+} from './data';
 import { type Made, Stage } from './stage';
 
 const generator = createGenerator({
@@ -22,7 +34,7 @@ const framed: CodeBlockProps = {
   allowCopy: false,
   className: 'my-0 rounded-none border-0 bg-transparent shadow-none',
   viewportProps: {
-    className: 'py-2.5 text-[11px]/4 lg:text-xs/[18px] overflow-hidden [&_.line]:px-3!',
+    className: 'py-2.5 text-[11px]/4 lg:text-xs/4.5 overflow-hidden [&_.line]:px-3!',
   },
 };
 
@@ -72,7 +84,7 @@ async function markdown(source: string): Promise<ReactNode> {
     );
   }
   return (
-    <pre className="px-3 py-2.5 font-mono text-[11px]/4 text-pretty whitespace-pre-wrap text-lp-ink lg:text-xs/[18px]">
+    <pre className="px-3 py-2.5 font-mono text-[11px]/4 text-pretty whitespace-pre-wrap text-lp-ink lg:text-xs/4.5">
       <span className="max-lg:hidden">{`# ${PAGE.title}\n\n${PAGE.description}\n\n## Props\n\n`}</span>
       {lines}
     </pre>
@@ -96,10 +108,7 @@ function page(source: string): ReactNode {
           <Button label="Read the docs" href="/docs" />
         </div>
         <span aria-hidden className="w-3/5 border-t border-lp-line-strong">
-          <span
-            className="block h-1.5 bg-lp-ink-2"
-            style={{ maskImage: DITHER_MASKS[4], maskSize: '4px 4px' }}
-          />
+          <span className="block h-1.5 bg-lp-ink-2" style={{ maskImage: DITHER_MASKS[4] }} />
         </span>
       </div>
       <div className="border-t border-lp-line">
@@ -164,6 +173,18 @@ async function table(source: string): Promise<ReactNode> {
 }
 
 export async function Automate() {
+  if (asMarkdown())
+    return block`
+      ${heading(copy.automate)}
+
+      - \`<auto-type-table>\` reads a TypeScript type, \`<include>\` takes code from your files, and async server components in MDX read your data, all at build time.
+      - One source, many outputs: from \`${FILE}\` come ${OUTPUTS.map((output) => `\`${output.title}\``).join(', ')}. Change the source and every one of them follows.
+
+      \`${FILE}\`:
+
+      ${<pre data-lang="tsx">{SOURCE}</pre>}
+    `;
+
   const outputs: Record<Output, Made> = {
     props: { before: await table(BEFORE), after: await table(SOURCE) },
     page: { before: page(BEFORE), after: page(SOURCE) },

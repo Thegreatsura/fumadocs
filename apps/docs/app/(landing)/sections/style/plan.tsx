@@ -21,7 +21,7 @@ export const Plan = memo(function Plan({ layout }: { layout: LayoutId }) {
       <span
         key={i}
         className="absolute bg-lp-ink"
-        style={{ ...percent(x, y, w, h, FRAME), maskImage: DITHER_MASKS[2], maskSize: '4px 4px' }}
+        style={{ ...percent(x, y, w, h, FRAME), maskImage: DITHER_MASKS[2] }}
       />,
     );
   }

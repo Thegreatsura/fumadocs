@@ -1,6 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react';
 import Image, { type StaticImageData } from 'next/image';
 import Link from 'next/link';
+import { asMarkdown } from 'fumadocs-core/server';
 import { ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { owner, repo } from '@/lib/github';
@@ -8,8 +9,9 @@ import { type ShowcaseObject, showcases, vercel } from '@/lib/showcases';
 import { copy } from '../../content';
 import { copy as showcase } from '../../showcase/data';
 import { VercelLinks, VercelTitle } from '../../showcase/wall';
+import { block, heading, url } from '../../markdown';
 import { Figure, FigureHeader } from '../../ui/figure';
-import { Shadow, Window } from '../../ui/window';
+import { Shadow, STRIPES, Window } from '../../ui/window';
 import { getContributorCount, getDownloads, getStars } from './data';
 import { type Reading, Stage } from './stage';
 
@@ -137,7 +139,7 @@ function Small({ image, index }: { image: StaticImageData | string; index: numbe
       )}
     >
       <span className="relative flex h-3 shrink-0 items-center justify-between border-b border-lp-line-strong px-0.5">
-        <span className="lp-pinstripe absolute inset-x-0.5 inset-y-0" />
+        <span className={`absolute inset-x-0.5 inset-y-0 ${STRIPES}`} />
         <span className={box} />
         <span className={box} />
       </span>
@@ -190,6 +192,14 @@ export async function Proof() {
   if (contributors !== undefined)
     readings.push({ label: 'Contributors', value: contributors, source: repository });
 
+  if (asMarkdown())
+    return block`
+      ${heading(copy.proof)}
+
+      ${readings.map((reading) => `- ${reading.label}: ${reading.value.toLocaleString('en-US')} (\`${reading.source}\`)`).join('\n')}
+      - [Showcase](${url('/showcase')}): ${[...showcases, ...vercel].map((site) => `[${site.name}](${site.url})`).join(', ')}
+    `;
+
   return (
     <Figure
       id="proof"
@@ -208,7 +218,7 @@ export async function Proof() {
             className="relative isolate w-full max-w-105 lg:absolute lg:top-0 lg:left-[min(72%,100%_-_max(25%,300px))] lg:mt-[10%] lg:w-[max(25%,300px)]"
           >
             <Shadow />
-            <Window title={<VercelTitle className="font-pixel text-[13.16px] antialiased" />}>
+            <Window title={<VercelTitle className="font-pixel text-pixel antialiased" />}>
               <p className="p-3 text-sm/5 text-pretty">{showcase.vercel}</p>
               <ul className="flex flex-col border-t border-lp-line-strong [&_a]:py-3">
                 <VercelLinks />
@@ -222,7 +232,7 @@ export async function Proof() {
             {source && (
               <Pick
                 site={source}
-                title={<span className="font-pixel text-[13.16px] antialiased">{source.name}</span>}
+                title={<span className="font-pixel text-pixel antialiased">{source.name}</span>}
                 style={place(SOURCE)}
                 sizes="(min-width: 1400px) 167px, (min-width: 1024px) 12.5vw, 124px"
               />
@@ -239,7 +249,7 @@ export async function Proof() {
               <Shadow />
               <Window title={<Title>showcase</Title>} className="h-24">
                 <span className="flex flex-1 flex-col justify-center gap-1 px-3 group-hover:bg-lp-ink group-hover:text-lp-paper group-focus-visible:bg-lp-ink group-focus-visible:text-lp-paper">
-                  <span className="font-pixel text-[13.16px] leading-4 text-lp-ink-2 antialiased group-hover:text-lp-paper group-focus-visible:text-lp-paper">
+                  <span className="font-pixel text-pixel text-lp-ink-2 antialiased group-hover:text-lp-paper group-focus-visible:text-lp-paper">
                     {picks.length} of {online}
                   </span>
                   <span className="inline-flex items-center gap-2 text-sm font-medium">

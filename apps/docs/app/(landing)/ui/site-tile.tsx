@@ -2,6 +2,7 @@ import type { ComponentProps, ReactNode } from 'react';
 import Image from 'next/image';
 import { cn } from '@/lib/cn';
 import type { ShowcaseObject } from '@/lib/showcases';
+import { STRIPES } from './window';
 
 /** where a site lives, without the protocol or a trailing slash */
 export function address(url: string): string {
@@ -29,7 +30,7 @@ function TileBar({ className, children }: { className?: string; children: ReactN
     >
       <span
         aria-hidden
-        className="lp-pinstripe absolute inset-x-1 inset-y-0 group-hover:hidden group-focus-visible:hidden"
+        className={`absolute inset-x-1 inset-y-0 group-hover:hidden group-focus-visible:hidden ${STRIPES}`}
       />
       <span aria-hidden className={box} />
       <span className="relative mx-auto min-w-0 truncate bg-lp-paper px-1.5 font-pixel text-xs leading-none group-hover:bg-transparent group-focus-visible:bg-transparent">

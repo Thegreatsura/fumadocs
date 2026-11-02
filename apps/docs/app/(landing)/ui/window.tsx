@@ -2,6 +2,10 @@ import type { ComponentProps, ReactNode } from 'react';
 import { cn } from '@/lib/cn';
 import { DITHER_MASKS } from '../lib/dither';
 
+/** a title bar's stripes: four hairlines, three px apart, across its middle */
+export const STRIPES =
+  'my-auto h-2.75 bg-linear-to-b from-lp-line-strong from-[1px] to-transparent to-[1px] bg-size-[auto_3px]';
+
 interface TitleBarProps {
   title?: ReactNode;
   /** extra content at the end of the title bar */
@@ -16,7 +20,7 @@ interface TitleBarProps {
 export function TitleBar({ title, actions }: TitleBarProps) {
   return (
     <div className="relative flex h-7 shrink-0 items-center gap-1.5 border-b border-lp-line-strong px-1.5">
-      <div aria-hidden className="lp-pinstripe absolute inset-x-1.5 inset-y-0" />
+      <div aria-hidden className={`absolute inset-x-1.5 inset-y-0 ${STRIPES}`} />
       <span aria-hidden className="relative size-3.5 border border-lp-line-strong bg-lp-paper" />
       <span className="relative mx-auto truncate bg-lp-paper px-2 font-mono text-xs leading-4">
         {title}
@@ -50,7 +54,7 @@ export function Shadow() {
     <span
       aria-hidden
       className="absolute inset-0 -z-10 translate-x-0.75 translate-y-1 bg-lp-ink-2"
-      style={{ maskImage: DITHER_MASKS[6], maskSize: '4px 4px' }}
+      style={{ maskImage: DITHER_MASKS[6] }}
     />
   );
 }
