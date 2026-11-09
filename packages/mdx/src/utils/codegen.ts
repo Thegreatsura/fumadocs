@@ -156,7 +156,9 @@ function stringifyQuery(query: GlobImportOptions['query'] = {}): string {
     if (v !== undefined) searchParams.set(k, v);
   }
 
-  return searchParams.size > 0 ? `?${searchParams}` : '';
+  // Rolldown's Vite transform reads the extension of an id before its query, like `ts%23docs` of
+  // `meta.ts?macro_id=source.ts%23docs`, so dots in values are encoded too
+  return searchParams.size > 0 ? `?${searchParams.toString().replaceAll('.', '%2E')}` : '';
 }
 
 /**

@@ -6,6 +6,7 @@ import { glob } from 'tinyglobby';
 import { createFSCache } from '@/utils/fs-cache';
 import { createHash } from 'node:crypto';
 import type { LazyEntry } from '@/runtime/dynamic';
+import { frontmatterCode } from '@/loaders/mdx/code';
 import type { EmitEntry } from '@/core';
 import { frontmatter } from 'fumadocs-core/content/md/frontmatter';
 
@@ -257,7 +258,10 @@ async function generateDynamicIndexFile(ctx: FileGenContext) {
         filePath: absolutePath,
         source: content,
       },
-      parsed.data as Record<string, unknown>,
+      {
+        ...(parsed.data as Record<string, unknown>),
+        ...frontmatterCode(absolutePath, parsed.content)?.compile(() => undefined)(),
+      },
     );
 
     const hash = createHash('md5').update(content).digest('hex');
