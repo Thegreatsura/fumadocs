@@ -5,14 +5,24 @@ description: Show content on a condition.
 
 ## Usage
 
-Remark Show is a remark plugin. Fumadocs MDX and `@fumadocs/astro` enable it by default on both unified and Sätteri. See [Show](/docs/markdown#show) for the syntax.
+Remark Show is a remark plugin for the [`<show>`](/docs/markdown#show) syntax. Fumadocs MDX, `@fumadocs/astro` and [Local Markdown](/docs/integrations/content/local-md) enable it by default.
 
-It compiles `<show>` into a component that renders its content when `when` holds. The condition is checked when rendering, so it can read the props of the page, like its [path params](/docs/headless/page-conventions#path-params). A `<show>` without `when` fails to compile.
+`<show>` renders its content when the `when` expression is true. The expression is evaluated when the page renders, so it can read the page props, like [path params](/docs/headless/page-conventions#path-params). A `<show>` without `when` fails to compile.
 
-## Outputs
+## Page Data
 
-The outputs of a page, which are its table of contents, [heading IDs](/docs/headless/mdx/headings), [structured data](/docs/headless/mdx/structure) and [processed Markdown](/docs/headless/mdx/remark-llms), only include the branches that show. Fumadocs MDX, `@fumadocs/astro` and [local Markdown](/docs/integrations/content/local-md) render them for the props of each page.
+Content that isn't rendered is also left out of the page data: the table of contents, [heading IDs](/docs/headless/mdx/headings#headings-with-expressions), [structured data](/docs/headless/mdx/structure) and [processed Markdown](/docs/headless/mdx/remark-llms).
 
 <Callout type="warn">
-  Used on their own, Rehype TOC, Remark Structure and Remark LLMs give static outputs, which are analysed from the source before any condition is checked. A document with `<show>` then fails to compile, unless a custom content source asks for [runtime outputs](/docs/headless/source-api/source#runtime-outputs).
+  The data comes from Rehype TOC, Remark Structure and Remark LLMs. Without Fumadocs MDX, they
+  generate it at compile time, before any condition can be evaluated, so a document with `<show>`
+  fails to compile. In a custom content source, enable [runtime
+  outputs](/docs/headless/source-api/source#runtime-outputs).
 </Callout>
+
+## Steps and Tab Groups
+
+`<show>` can wrap a [step](/docs/headless/mdx/remark-steps), or a code block of a [tab group](/docs/markdown#tab-groups). See the [example](/docs/markdown#show).
+
+- Add Remark Show before Remark Steps and `remarkCodeTab` in your plugins.
+- Keep at least one step, or one tab, outside `<show>`. Otherwise each `<show>` gets its own steps or tab group.
