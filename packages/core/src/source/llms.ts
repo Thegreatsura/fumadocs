@@ -8,6 +8,8 @@ interface Context {
 
 interface RenderContext<C extends LoaderConfig> extends Context {
   loader: LoaderOutput<C>;
+  /** link pages to their `.md` files */
+  markdown?: boolean;
 }
 
 export interface LLMsConfig<Page = unknown> {
@@ -17,12 +19,31 @@ export interface LLMsConfig<Page = unknown> {
     item: PageTree.Root | PageTree.Item | PageTree.Folder,
     ctx: Context,
   ) => string;
+  /**
+   * The URL of a link, in files `item.url` is the path of the file it links to, like the `.md` file of a page.
+   */
   renderUrl?: (item: PageTree.Item, ctx: Context) => string;
 
   /**
-   * Render a page as Markdown, required by `page()` and `full()`.
+   * Render a page as Markdown, required by `page()`, `full()` and the files.
    */
   renderPage?: (page: Page) => Awaitable<string>;
+
+  /**
+   * The pages in `full()` and the files, every page by default.
+   */
+  filter?: (page: Page) => boolean;
+
+  /**
+   * Whether a folder is a section: a folder with its own `llms-full.txt`. Root folders are sections by default.
+   *
+   * - `collapse`: list the section in `llms.txt` as one link to its own `llms.txt`, which lists its pages.
+   * - `asPath`: the path to serve its files under, instead of the URL of the folder's index page.
+   */
+  section?: (
+    folder: PageTree.Folder,
+    ctx: Context,
+  ) => boolean | { asPath?: string; collapse?: boolean };
 }
 
 export interface LLMs<IndexOutput extends Awaitable<string> = Awaitable<string>> {
@@ -52,6 +73,25 @@ export interface LLMsWithPages<
    * generate `llms-full.txt` content: every page rendered with `renderPage`.
    */
   full: (lang?: string) => Promise<string>;
+
+  /**
+   * The paths of the files for agents, for static output:
+   *
+   * - `/llms.txt`: the index, with a link to the `.md` file of each page.
+   * - `/llms-full.txt`: every page.
+   * - `<page>.md`: a page, `/index.md` for `/`.
+   * - `<section>/llms-full.txt`: the pages of a section, and `<section>/llms.txt` when it's collapsed, see `section`.
+   *
+   * @param lang - only the pages of a language, required when URLs don't have the locale (`hideLocale: 'always'`)
+   */
+  files: (lang?: string) => Promise<string[]>;
+
+  /**
+   * Respond with the file at a path, `undefined` when there's none.
+   *
+   * @param lang - only the pages of a language, see `files()`
+   */
+  serve: (path: string, lang?: string) => Promise<Response | undefined>;
 }
 
 export function llms<C extends LoaderConfig = LoaderConfig>(
@@ -74,7 +114,8 @@ export function llms<C extends LoaderConfig = LoaderConfig>(
   input: LoaderOutput<C> | (() => Awaitable<LoaderOutput<C>>),
   config: LLMsConfig<C['page']> = {},
 ): LLMs | LLMsWithPages<C['page']> {
-  const { TAB = '  ' } = config;
+  type Page = C['page'];
+  const { TAB = '  ', filter = () => true, section = (folder) => Boolean(folder.root) } = config;
 
   function renderName(node: PageTree.Node | PageTree.Root, ctx: RenderContext<C>): string {
     if (config.renderName) return config.renderName(node, ctx);
@@ -118,6 +159,9 @@ export function llms<C extends LoaderConfig = LoaderConfig>(
   function formatNode(node: PageTree.Node, indent: number, ctx: RenderContext<C>): string {
     switch (node.type) {
       case 'page': {
+        const page = ctx.markdown && ctx.loader.getNodePage(node, ctx.lang);
+        if (page && filter(page)) node = { ...node, url: markdownPath(page.url) };
+
         return formatListItem(
           formatMarkdownLink(renderName(node, ctx), config.renderUrl?.(node, ctx) ?? node.url),
           renderDescription(node, ctx),
@@ -125,8 +169,12 @@ export function llms<C extends LoaderConfig = LoaderConfig>(
         );
       }
       case 'folder': {
-        const out: string[] = [];
-        out.push(formatListItem(renderName(node, ctx), renderDescription(node, ctx), indent));
+        const scope = ctx.markdown ? sectionOf(node, ctx) : undefined;
+        let name = renderName(node, ctx);
+        if (scope)
+          name = linkFile(name, `${scope.url}/${scope.collapse ? 'llms' : 'llms-full'}.txt`, ctx);
+        const out = [formatListItem(name, renderDescription(node, ctx), indent)];
+        if (scope?.collapse) return out[0];
         if (node.index) {
           out.push(formatNode(node.index, indent + 1, ctx));
         }
@@ -142,51 +190,180 @@ export function llms<C extends LoaderConfig = LoaderConfig>(
     }
   }
 
-  function formatIndex(loader: LoaderOutput<C>, lang?: string): string {
+  function formatIndex(ctx: RenderContext<C>): string {
+    const { loader, lang } = ctx;
     if (loader._i18n && lang === undefined) {
       const out: string[] = [];
-      for (const language of loader._i18n.languages) out.push(formatIndex(loader, language));
+      for (const language of loader._i18n.languages)
+        out.push(formatIndex({ ...ctx, lang: language }));
 
       return out.join('\n\n');
     }
 
-    const ctx: RenderContext<C> = { lang, loader };
-    const pageTree = loader.getPageTree(lang);
-    const out: string[] = [];
-    out.push(`# ${renderName(pageTree, ctx)}`, '');
-    const description = renderDescription(pageTree, ctx);
-    if (description) out.push(`> ${description}`, '');
+    return formatTree(loader.getPageTree(lang), ctx);
+  }
 
-    for (const child of pageTree.children) out.push(formatNode(child, 0, ctx));
+  /** the index of a page tree or a section, `full` is the path of its `llms-full.txt` */
+  function formatTree(
+    node: PageTree.Root | PageTree.Folder,
+    ctx: RenderContext<C>,
+    full?: string,
+  ): string {
+    const out = [`# ${renderName(node, ctx)}`, ''];
+    const description = renderDescription(node, ctx);
+    if (description) out.push(`> ${description}`, '');
+    if (full) out.push(linkFile('All pages', full, ctx), '');
+
+    if (node.type === 'folder' && node.index) out.push(formatNode(node.index, 0, ctx));
+    for (const child of node.children) out.push(formatNode(child, 0, ctx));
     return out.join('\n');
   }
 
-  function renderPage(page: C['page']) {
+  /** a link to one of the files, through `renderUrl` */
+  function linkFile(name: string, path: string, ctx: RenderContext<C>): string {
+    const item: PageTree.Item = { type: 'page', name, url: path };
+    return formatMarkdownLink(name, config.renderUrl?.(item, ctx) ?? path);
+  }
+
+  function renderPage(page: Page) {
     if (!config.renderPage)
       throw new Error('`renderPage` is required by `page()` and `full()`, see llms() options.');
 
     return config.renderPage(page);
   }
 
-  function withLoader(render: (loader: LoaderOutput<C>) => string): Awaitable<string> {
+  async function renderPages(pages: Page[]): Promise<string> {
+    return (await Promise.all(pages.map(renderPage))).join('\n\n');
+  }
+
+  const getPages = (loader: LoaderOutput<C>, lang?: string) => loader.getPages(lang).filter(filter);
+
+  /** the URL, collapse and pages of a folder, when it's a section */
+  function sectionOf(folder: PageTree.Folder, ctx: RenderContext<C>) {
+    const options = section(folder, ctx);
+    if (!options) return;
+
+    const pages: Page[] = [];
+    const visit = (node: PageTree.Node) => {
+      if (node.type === 'page') {
+        const page = ctx.loader.getNodePage(node, ctx.lang);
+        if (page && filter(page)) pages.push(page);
+      } else if (node.type === 'folder') {
+        if (node.index) visit(node.index);
+        for (const child of node.children) visit(child);
+      }
+    };
+    visit(folder);
+    if (pages.length === 0) return;
+    const { asPath, collapse } = options === true ? {} : options;
+
+    let url = asPath ?? folder.index?.url ?? pages[0].url;
+    // without an index page, the URL directory of its pages
+    if (!asPath) {
+      for (const page of pages) {
+        while (url.length > 0 && !`${page.url}/`.startsWith(`${url}/`))
+          url = url.slice(0, url.lastIndexOf('/'));
+      }
+    }
+    return { url: url.replace(/\/$/, ''), collapse, pages, folder, ctx };
+  }
+
+  /** the sections of the page trees, by URL */
+  function sections(loader: LoaderOutput<C>, lang?: string) {
+    const out = new Map<string, NonNullable<ReturnType<typeof sectionOf>>>();
+    const visit = (node: PageTree.Node, ctx: RenderContext<C>) => {
+      if (node.type !== 'folder') return;
+      const scope = sectionOf(node, ctx);
+      if (scope && !out.has(scope.url)) out.set(scope.url, scope);
+      for (const child of node.children) visit(child, ctx);
+    };
+
+    const languages = lang === undefined && loader._i18n ? loader._i18n.languages : [lang];
+    for (const language of languages) {
+      for (const child of loader.getPageTree(language).children)
+        visit(child, { loader, lang: language });
+    }
+    return out;
+  }
+
+  function withLoader<T>(render: (loader: LoaderOutput<C>) => T): Awaitable<T> {
     if (typeof input === 'function') return Promise.resolve(input()).then(render);
     return render(input);
   }
 
+  async function renderFile(
+    loader: LoaderOutput<C>,
+    path: string,
+    lang?: string,
+  ): Promise<string | undefined> {
+    if (path === '/llms.txt') return formatIndex({ loader, lang, markdown: true });
+    if (path === '/llms-full.txt') return renderPages(getPages(loader, lang));
+    if (path.endsWith('.md')) {
+      // `/docs/.md` and `/.md` from page URLs with a trailing slash
+      let url = path.slice(0, -'.md'.length).replace(/(.)\/$/, '$1');
+      if (url === '/index') url = '/';
+      const page = loader.getPageByUrl(url, lang) ?? loader.getPageByUrl(`${url}/`, lang);
+      if (page && filter(page)) return renderPage(page);
+      return;
+    }
+
+    const scope = sections(loader, lang).get(path.slice(0, path.lastIndexOf('/')));
+    if (scope && path.endsWith('/llms-full.txt')) return renderPages(scope.pages);
+    // a section without `collapse` is listed in the parent `llms.txt`
+    if (scope?.collapse && path.endsWith('/llms.txt'))
+      return formatTree(
+        scope.folder,
+        { ...scope.ctx, markdown: true },
+        `${scope.url}/llms-full.txt`,
+      );
+  }
+
   return {
-    index: (lang) => withLoader((loader) => formatIndex(loader, lang)),
+    index: (lang) => withLoader((loader) => formatIndex({ loader, lang })),
     indexNode: (node, lang) => withLoader((loader) => formatNode(node, 0, { lang, loader })),
     async page(page) {
       return renderPage(page);
     },
     async full(lang) {
-      const loader = typeof input === 'function' ? await input() : input;
-      const rendered: Awaitable<string>[] = [];
-      for (const page of loader.getPages(lang)) rendered.push(renderPage(page));
+      return withLoader((loader) => renderPages(getPages(loader, lang)));
+    },
+    async files(lang) {
+      return withLoader((loader) => {
+        const pages = getPages(loader, lang);
+        const out = new Set(['/llms.txt', '/llms-full.txt']);
+        for (const page of pages) out.add(markdownPath(page.url));
+        for (const [url, { collapse }] of sections(loader, lang)) {
+          if (collapse) out.add(`${url}/llms.txt`);
+          out.add(`${url}/llms-full.txt`);
+        }
+        return Array.from(out);
+      });
+    },
+    async serve(path, lang) {
+      // middleware calls it on every request, and other paths have no file
+      if (!/\.(md|txt)$/.test(path)) return;
 
-      return (await Promise.all(rendered)).join('\n\n');
+      return withLoader(async (loader) => {
+        // generated URLs are URI encoded, routers may pass paths decoded
+        const encoded = encodeURI(path);
+        const text =
+          (await renderFile(loader, path, lang)) ??
+          (encoded === path ? undefined : await renderFile(loader, encoded, lang));
+        if (text === undefined) return;
+
+        return new Response(text, {
+          headers: {
+            'Content-Type': `${path.endsWith('.md') ? 'text/markdown' : 'text/plain'}; charset=utf-8`,
+          },
+        });
+      });
     },
   };
+}
+
+/** the path of the `.md` file of a page: `<page>.md`, `/index.md` for `/` */
+function markdownPath(url: string): string {
+  return url === '/' ? '/index.md' : `${url.replace(/\/$/, '')}.md`;
 }
 
 function formatMarkdownLink(title: string, url: string): string {

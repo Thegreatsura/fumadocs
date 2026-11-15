@@ -2,24 +2,18 @@ import { baseOptions, linkItems } from '@/components/layouts/shared';
 import { source } from '@/lib/source';
 import { AIChat } from '@/components/inkeep/search';
 import { getSection } from '@/lib/source/navigation';
-import type { CSSProperties, ReactNode } from 'react';
+import type { CSSProperties } from 'react';
 import { getLayoutTabs } from 'fumadocs-ui/layouts/shared';
-import { isFramework } from '@/lib/framework';
-import { FrameworkLogo } from '@/components/framework-logo';
 import { ClientSpaciousLayout } from './client';
 import 'katex/dist/katex.min.css';
 
-export function Spacious({ children }: { children: ReactNode }) {
+export async function Spacious({ params, children }: LayoutProps<'/[lang]/docs'>) {
+  const { lang } = await params;
   const base = baseOptions();
-  const tabs = getLayoutTabs(source.getPageTree(), {
+  const tabs = getLayoutTabs(source.getPageTree(lang), {
     transform(option, node) {
-      // the root folder of a framework, like `(framework)/next`
-      const framework = node.$id?.replace('(framework)/', '');
-      if (node.root === 'framework' && isFramework(framework))
-        return {
-          ...option,
-          icon: <FrameworkLogo framework={framework} />,
-        };
+      // framework logos keep their colors
+      if (node.root === 'framework') return option;
 
       const meta = source.getNodeMeta(node);
       if (!meta || !node.icon) return option;
@@ -40,7 +34,7 @@ export function Spacious({ children }: { children: ReactNode }) {
     <AIChat>
       <ClientSpaciousLayout
         {...base}
-        tree={source.getPageTree()}
+        tree={source.getPageTree(lang)}
         // just icon items
         links={linkItems.filter((item) => item.type === 'icon')}
         tabs={tabs}

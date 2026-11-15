@@ -1,0 +1,52 @@
+---
+title: Flux 版面配置
+description: 極致精簡的文件版面配置
+---
+
+import { flux } from './layouts.story';
+
+一款極簡、潔淨到近乎不切實際的文件版面配置，最初是為了實驗用途而打造。
+
+<flux.WithControl />
+
+<Customization />
+
+## 使用方式 [#usage]
+
+透過 `fumadocs-ui/layouts/flux` 啟用 Flux 版面配置。
+
+```tsx title="layout.tsx"
+import { DocsLayout } from 'fumadocs-ui/layouts/flux'; // [!code highlight]
+import { baseOptions } from '@/lib/layout.shared';
+import { source } from '@/lib/source';
+import type { ReactNode } from 'react';
+
+export default function Layout({ children }: { children: ReactNode }) {
+  return (
+    <DocsLayout {...baseOptions()} tree={source.getPageTree()}>
+      {children}
+    </DocsLayout>
+  );
+}
+```
+
+請記得一併更新頁面中的匯入：
+
+```tsx title="page.tsx"
+import { ... } from 'fumadocs-ui/layouts/docs/page'; // [!code --]
+import { ... } from 'fumadocs-ui/layouts/flux/page'; // [!code ++]
+```
+
+<Callout title="須知事項">
+  * 建議搭配[靜態／本機搜尋](/docs/search/orama#static)使用，透過文件搜尋來瀏覽會更有效率。
+  * 它以主觀美感為優先，而非使用者體驗。
+  * 它的設計較為固定，若需要自訂，請改用 Fumadocs CLI。
+</Callout>
+
+## 設定 [#configurations]
+
+選項繼承自[文件版面配置](/docs/ui/layouts/docs)，但有些許差異：
+
+* Flux 版面配置是用戶端元件，因此您無法從伺服器元件傳入無法序列化的 props。
+* 新增 `renderNavigationPanel` prop，可用來自訂底部的導覽面板。
+* 不提供 `tocPopover` 選項。

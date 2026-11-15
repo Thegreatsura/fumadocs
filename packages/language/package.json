@@ -1,6 +1,6 @@
 {
   "name": "@fumadocs/language",
-  "version": "0.2.19",
+  "version": "0.2.21",
   "description": "Common language packs for Fumadocs",
   "keywords": [
     "documentation",
@@ -16,6 +16,7 @@
   "type": "module",
   "sideEffects": false,
   "exports": {
+    "./ja": "./dist/ja.js",
     "./zh-cn": "./dist/zh-cn.js",
     "./zh-tw": "./dist/zh-tw.js",
     "./package.json": "./package.json"
@@ -31,6 +32,7 @@
     "types:check": "tsc --noEmit"
   },
   "devDependencies": {
+    "@fumadocs/ai-chat": "workspace:*",
     "@fumadocs/asyncapi": "workspace:*",
     "@fumadocs/graphql": "workspace:*",
     "@fumadocs/story": "workspace:*",
@@ -42,6 +44,7 @@
     "typescript": "^7.0.2"
   },
   "peerDependencies": {
+    "@fumadocs/ai-chat": "*",
     "@fumadocs/asyncapi": "*",
     "@fumadocs/graphql": "*",
     "@fumadocs/story": "*",
@@ -50,6 +53,9 @@
     "fumadocs-ui": "*"
   },
   "peerDependenciesMeta": {
+    "@fumadocs/ai-chat": {
+      "optional": true
+    },
     "@fumadocs/asyncapi": {
       "optional": true
     },

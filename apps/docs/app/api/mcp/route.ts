@@ -1,12 +1,14 @@
-import { DataSourceId, orama } from '@/lib/orama/client';
 import { createMcpHandler, McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import { ProvideLinksToolSchema } from '@/lib/inkeep/inkeep-qa-schema';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { generateText } from 'ai';
-import { registerSourceTools } from 'fumadocs-core/mcp';
+import { registerSearchTool, registerSourceTools } from 'fumadocs-core/mcp';
 import { docsLlms } from '@/lib/llms';
 import { source } from '@/lib/source';
+import { search } from '@/lib/search';
+import { defaultFramework } from '@/lib/framework';
+import { i18n } from '@/lib/i18n';
 
 const openai = createOpenAICompatible({
   name: 'inkeep',
@@ -24,32 +26,16 @@ const handler = createMcpHandler(() => {
     { capabilities: { tools: { listChanged: false } } },
   );
 
-  registerSourceTools(server, source, docsLlms);
-
-  server.registerTool(
-    'search',
-    {
-      title: 'Search Docs',
-      description: 'Search docs pages with a query',
-      inputSchema: z.object({
-        query: z.string('the search query'),
-      }),
-    },
-    async ({ query }) => {
-      const result = await orama.search({
-        term: query,
-        datasources: [DataSourceId],
-        limit: 50,
-      });
-
-      return {
-        content: result.hits.map((hit) => ({
-          type: 'text',
-          text: JSON.stringify(hit.document),
-        })),
-      };
-    },
-  );
+  // the pages of the default language, like `llms.txt`
+  registerSourceTools(server, source, {
+    ...docsLlms,
+    index: () => docsLlms.index(i18n.defaultLanguage),
+  });
+  registerSearchTool(server, {
+    ...search,
+    // the frameworks have the same pages, like in `llms.txt`
+    search: (query, options) => search.search(query, { ...options, tag: defaultFramework }),
+  });
 
   server.registerTool(
     'ask-ai',

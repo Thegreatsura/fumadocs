@@ -1,0 +1,127 @@
+---
+title: Glass 版面配置
+description: 採用浮動式半透明側邊欄與頁首的文件版面配置
+---
+
+import { glass } from './layouts.story';
+
+以浮動、半透明 (類似玻璃) 面板為核心設計的文件版面配置：側邊欄與頁首並非固定的欄位，而是以圓角、模糊效果的面板形式疊放在內容上方。
+
+<glass.WithControl />
+
+<Customization />
+
+## 使用方式 [#usage]
+
+透過 `fumadocs-ui/layouts/glass` 啟用 Glass 版面配置。
+
+```tsx title="layout.tsx"
+import { DocsLayout } from 'fumadocs-ui/layouts/glass'; // [!code highlight]
+import { baseOptions } from '@/lib/layout.shared';
+import { source } from '@/lib/source';
+import type { ReactNode } from 'react';
+
+export default function Layout({ children }: { children: ReactNode }) {
+  return (
+    <DocsLayout {...baseOptions()} tree={source.getPageTree()}>
+      {children}
+    </DocsLayout>
+  );
+}
+```
+
+請記得也要更新頁面中的匯入：
+
+```tsx title="page.tsx"
+import { ... } from 'fumadocs-ui/layouts/docs/page'; // [!code --]
+import { ... } from 'fumadocs-ui/layouts/glass/page'; // [!code ++]
+```
+
+### 樣式 [#styles]
+
+與其他版面配置不同，Glass 版面配置的樣式**並未**打包進 CSS 預設組合中，因此只有在您實際使用此版面配置時，才會增加額外負擔。請在您的 Tailwind CSS 檔案中匯入這些樣式：
+
+```css title="Tailwind CSS"
+@import 'tailwindcss';
+/* [!code ++] */
+@import 'fumadocs-ui/css/generated/glass.css';
+@import 'fumadocs-ui/css/neutral.css';
+@import 'fumadocs-ui/css/preset.css';
+```
+
+<Callout title="重要須知">
+  * Glass 版面配置是**用戶端元件**，您無法從伺服器元件傳入無法序列化的 props。
+  * 此版面配置的設計較為固定：側邊欄與頁首的彈性不如預設版面配置，如需自訂，請使用 Fumadocs CLI 或 `slots` 選項。
+</Callout>
+
+## 設定 [#configurations]
+
+選項繼承自[文件版面配置](/docs/ui/layouts/docs)，但有些許差異：
+
+* 沒有 `sidebar` 選項，因為 Glass 版面配置的設計比預設版面配置更具既定風格。
+* 提供額外的選項 (請見下文) 。
+
+### 版面配置頁籤 [#layout-tabs]
+
+請透過 `tabs` prop 設定[版面配置頁籤](/docs/ui/layouts/docs#layout-tabs)，新增方式請參閱連結的文件。頁籤會以下拉選單的形式顯示在側邊欄中。
+
+```tsx title="layout.tsx"
+import { DocsLayout } from 'fumadocs-ui/layouts/glass';
+import { baseOptions } from '@/lib/layout.shared';
+import { source } from '@/lib/source';
+import type { ReactNode } from 'react';
+
+export default function Layout({ children }: { children: ReactNode }) {
+  return (
+    <DocsLayout
+      {...baseOptions()}
+      tabs={
+        {
+          // 自訂頁籤
+        }
+      }
+      tree={source.getPageTree()}
+    >
+      {children}
+    </DocsLayout>
+  );
+}
+```
+
+### AI 聊天 [#ai-chat]
+
+浮動頁首可以算繪**詢問 AI** 按鈕。請傳入含有開啟狀態與變更處理函式的 `aiChat` 物件，以控制您的 AI 搜尋對話方塊。在寬螢幕上，版面配置會將您的聊天 `panel` 放在頁面旁邊；在較小的螢幕上，則會讓它浮動於頁面上方。
+
+```tsx title="layout.tsx"
+'use client';
+import { DocsLayout } from 'fumadocs-ui/layouts/glass';
+import { useState } from 'react';
+
+export function Layout({ children }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <DocsLayout
+      aiChat={{ open, onOpenChange: setOpen, panel: <MyChat /> }} // [!code ++]
+      // ...
+    >
+      {children}
+    </DocsLayout>
+  );
+}
+```
+
+### Slots [#slots]
+
+與其他版面配置相同，Glass 版面配置提供 `slots` 選項，除了共用的 slot (`navTitle`、`themeSwitch`、`searchTrigger`、`languageSelect`) 之外，也可用來覆寫內建的 `header`、`sidebar` 和 `sidebarDrawer` (行動版) 元件。
+
+```tsx title="layout.tsx"
+import { DocsLayout } from 'fumadocs-ui/layouts/glass';
+
+<DocsLayout
+  slots={{
+    header: MyHeader, // [!code ++]
+  }}
+  // ...
+/>;
+```

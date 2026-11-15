@@ -1,3 +1,52 @@
+## fumadocs-core@16.19.3
+
+### Unique heading IDs next to custom IDs
+
+- Headings after a custom `[#id]` no longer reuse it as their ID.
+
+### `usePathname()` During TanStack Router Navigations
+
+- Components that mount or hydrate while TanStack Router loads the next page get the pathname of the current page, like the components that were already mounted, instead of the next page's.
+
+### Flexsearch builds each locale on its first search
+
+- `flexsearchFromSource()` and `flexsearchI18n()` build the index of a locale when it is first searched, instead of every locale on the first request.
+
+## fumadocs-core@16.19.2
+
+### Sections of `llms()` from the page tree
+
+- Sections of `llms()` are page tree folders instead of URL directories, and root folders are sections by default.
+- In `llms.txt`, the line of a section's folder links to the `llms-full.txt` of the section.
+- The `section` option chooses the sections, and can collapse a section into one link to its own `llms.txt`.
+- The CLI serves the `llms.txt` of collapsed sections on every framework.
+- The `AGENTS.md` of new projects links the Customize UI guide and the theme docs.
+
+## fumadocs-core@16.19.1
+
+### Files for agents
+
+- `llms()` adds `files()` and `serve(path)`: `llms.txt`, `llms-full.txt` and `<page>.md` files by their public path, served from one route.
+- URL directories get their own `llms-full.txt`, listed in `llms.txt`, so large docs can be read section by section.
+- `llms.txt` from `serve()` links pages to their Markdown.
+- The `filter` option leaves pages out of `full()` and the files.
+- Components without a Markdown form keep their MDX tag name in processed Markdown, also in production builds.
+- The `get_page` MCP tool accepts URLs with a hash or query, like the URLs of search results.
+- Auto type tables show the full type of each prop in Markdown.
+
+### Setup for AI agents
+
+- CLI prompts don't wait without a terminal: a missing choice fails with the flag and its values, confirmations take their default, and existing files are kept unless `--yes` is passed.
+- The CLI fails with a clear message where it finds no supported framework, instead of setting up Next.js.
+- The CLI detects Radix UI from a plain `fumadocs-ui` dependency.
+- `init --i18n` on a static Next.js site keeps the locale in URLs and writes no proxy.
+- The duplicated slugs error names both files.
+- The macro error of Fumadocs MDX explains how to load content outside the bundler.
+- New projects include an `AGENTS.md` that links the Fumadocs docs for AI agents.
+- The CLI and `create-fumadocs-app` print plain lines instead of spinner frames without a terminal.
+- `create-fumadocs-app` names the file to set the site name and GitHub repository, and names the package after the current folder when created in `.`.
+- The `path` that a collection schema function receives is documented as absolute.
+
 ## fumadocs-core@16.19.0
 
 ### Path params at runtime

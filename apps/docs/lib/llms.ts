@@ -2,9 +2,23 @@ import { source } from '@/lib/source';
 import { llms } from 'fumadocs-core/source';
 import { getSection } from './source/navigation';
 import { defaultFramework, frameworks } from './framework';
+import { getPageComponents } from '@/components/mdx/page';
 
 export const docsLlms = llms(source, {
+  // generated API pages have no Markdown
+  filter: (page) => page.type === 'docs',
+  section: (folder) => {
+    // the frameworks have the same pages, `llms.txt` lists each as one line
+    if (folder.root === 'framework') return { collapse: true };
+    // every folder, except the Framework group which has every framework
+    return !folder.children.some((child) => child.type === 'folder' && child.root);
+  },
   renderPage: async (page) => {
+    page =
+      source.getPage(page.slugs, {
+        language: page.locale,
+        props: { components: getPageComponents(page) },
+      }) ?? page;
     if (page.type !== 'docs' || !('getText' in page.data)) return '';
 
     const section = getSection(page.slugs[0]);
@@ -35,5 +49,5 @@ ${processed}`;
   },
 });
 
-/** `llms.txt` and `llms-full.txt` list the pages of the default framework, the other frameworks have the same pages */
+/** `llms-full.txt` has the pages of the default framework, the other frameworks have the same pages */
 export const frameworkNote = `Each page under \`/docs/${defaultFramework}\` has a version for every framework at \`/docs/<framework>\`, where \`<framework>\` is one of ${frameworks.map((item) => `\`${item.value}\``).join(', ')}.`;

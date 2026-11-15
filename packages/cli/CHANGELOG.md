@@ -1,3 +1,36 @@
+## @fumadocs/cli@1.9.2
+
+### Sections of `llms()` from the page tree
+
+- Sections of `llms()` are page tree folders instead of URL directories, and root folders are sections by default.
+- In `llms.txt`, the line of a section's folder links to the `llms-full.txt` of the section.
+- The `section` option chooses the sections, and can collapse a section into one link to its own `llms.txt`.
+- The CLI serves the `llms.txt` of collapsed sections on every framework.
+- The `AGENTS.md` of new projects links the Customize UI guide and the theme docs.
+
+## @fumadocs/cli@1.9.1
+
+### Setup for AI agents
+
+- CLI prompts don't wait without a terminal: a missing choice fails with the flag and its values, confirmations take their default, and existing files are kept unless `--yes` is passed.
+- The CLI fails with a clear message where it finds no supported framework, instead of setting up Next.js.
+- The CLI detects Radix UI from a plain `fumadocs-ui` dependency.
+- `init --i18n` on a static Next.js site keeps the locale in URLs and writes no proxy.
+- The duplicated slugs error names both files.
+- The macro error of Fumadocs MDX explains how to load content outside the bundler.
+- New projects include an `AGENTS.md` that links the Fumadocs docs for AI agents.
+- The CLI and `create-fumadocs-app` print plain lines instead of spinner frames without a terminal.
+- `create-fumadocs-app` names the file to set the site name and GitHub repository, and names the package after the current folder when created in `.`.
+- The `path` that a collection schema function receives is documented as absolute.
+
+### Files for agents in every framework
+
+- `fumadocs feature llms` serves the files of `docsLlms.serve()` on every framework: `llms.txt`, `llms-full.txt`, the `llms-full.txt` of each section and `<page>.md`.
+- Page Markdown moves from `/llms.mdx/docs/<page>/content.md` to `<page>.md`, and to `/llms.mdx/<page>.md` on React Router, Waku and Next.js static export.
+- React Router and Waku serve the Markdown of a docs page to requests that prefer `text/markdown`.
+- The CLI no longer generates `getPageMarkdownUrl()`: the Markdown URL of a page is `${page.url}.md`, with the `/llms.mdx` prefix on those setups.
+- The Astro template serves the files from one endpoint.
+
 ## @fumadocs/cli@1.9.0
 
 ### Parse with Babel

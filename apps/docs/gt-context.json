@@ -1,0 +1,258 @@
+{
+  "groupId": "cg_v4x88fikw66pzu4sok1maclp",
+  "customPrompts": [
+    {
+      "name": "Taiwan conventions",
+      "locale": "zh-TW",
+      "value": "Write Traditional Chinese as used by developers in Taiwan, with Taiwanese technical terms (程式碼, 檔案, 預設, 設定, 伺服器, 函式, 變數, 物件, 介面) rather than Mainland ones (代码, 文件 for a file, 默认, 配置 for settings, 服务器, 函数, 对象, 接口). Use full-width punctuation in prose, and put a space between Chinese and Latin words or numbers."
+    },
+    {
+      "name": "Japanese conventions",
+      "locale": "ja",
+      "value": "Write in the です/ます style of Japanese technical documentation, with Japanese punctuation (、。) and half-width letters, numbers and symbols. Write established technical terms in katakana, like レンダリング and コンポーネント, and keep names of APIs and products in English."
+    },
+    {
+      "name": "Code",
+      "locale": null,
+      "value": "Keep code identifiers, file paths, package names, commands, options, props and component names exactly as written, also in prose. In code blocks, translate only comments, and keep annotations like `[!code highlight]` and `// @noErrors` unchanged."
+    }
+  ],
+  "entries": [
+    {
+      "keyword": "Fumadocs",
+      "definition": "The name of the documentation framework, never translated."
+    },
+    {
+      "keyword": "Fumadocs Core",
+      "definition": "The headless library of Fumadocs, a product name."
+    },
+    {
+      "keyword": "Fumadocs MDX",
+      "definition": "The official content source of Fumadocs, a product name."
+    },
+    {
+      "keyword": "Fumadocs CLI",
+      "definition": "The command line tool of Fumadocs, a product name."
+    },
+    {
+      "keyword": "Sätteri",
+      "definition": "A Markdown compiler, a product name."
+    },
+    {
+      "keyword": "props",
+      "definition": "The properties passed to a React component, a technical term kept in English.",
+      "translations": {
+        "zh-TW": {
+          "translation": "props"
+        },
+        "ja": {
+          "translation": "props"
+        }
+      }
+    },
+    {
+      "keyword": "schema",
+      "definition": "A definition of the shape of data, like a Zod or JSON schema.",
+      "translations": {
+        "zh-TW": {
+          "translation": "schema"
+        },
+        "ja": {
+          "translation": "スキーマ"
+        }
+      }
+    },
+    {
+      "keyword": "hook",
+      "definition": "A React hook or a lifecycle function of a plugin.",
+      "translations": {
+        "zh-TW": {
+          "translation": "hook"
+        },
+        "ja": {
+          "translation": "フック"
+        }
+      }
+    },
+    {
+      "keyword": "frontmatter",
+      "definition": "The YAML metadata at the top of a Markdown file.",
+      "translations": {
+        "zh-TW": {
+          "translation": "frontmatter"
+        },
+        "ja": {
+          "translation": "フロントマター"
+        }
+      }
+    },
+    {
+      "keyword": "render",
+      "definition": "To produce UI or HTML from components or content.",
+      "translations": {
+        "zh-TW": {
+          "translation": "算繪"
+        },
+        "ja": {
+          "translation": "レンダリング"
+        }
+      }
+    },
+    {
+      "keyword": "client",
+      "definition": "The browser side of an app, as opposed to the server.",
+      "translations": {
+        "zh-TW": {
+          "translation": "用戶端"
+        },
+        "ja": {
+          "translation": "クライアント"
+        }
+      }
+    },
+    {
+      "keyword": "component",
+      "definition": "A React component.",
+      "translations": {
+        "zh-TW": {
+          "translation": "元件"
+        },
+        "ja": {
+          "translation": "コンポーネント"
+        }
+      }
+    },
+    {
+      "keyword": "layout",
+      "definition": "A page structure of the docs UI, like the docs layout.",
+      "translations": {
+        "zh-TW": {
+          "translation": "版面配置"
+        },
+        "ja": {
+          "translation": "レイアウト"
+        }
+      }
+    },
+    {
+      "keyword": "page tree",
+      "definition": "The tree of pages and folders that navigation is built from.",
+      "translations": {
+        "zh-TW": {
+          "translation": "頁面樹"
+        },
+        "ja": {
+          "translation": "ページツリー"
+        }
+      }
+    },
+    {
+      "keyword": "sidebar",
+      "definition": "The navigation panel at the side of docs pages.",
+      "translations": {
+        "zh-TW": {
+          "translation": "側邊欄"
+        },
+        "ja": {
+          "translation": "サイドバー"
+        }
+      }
+    },
+    {
+      "keyword": "table of contents",
+      "definition": "The list of headings on a page.",
+      "translations": {
+        "zh-TW": {
+          "translation": "目錄"
+        },
+        "ja": {
+          "translation": "目次"
+        }
+      }
+    },
+    {
+      "keyword": "plugin",
+      "definition": "An extension of a tool, like a remark plugin or a loader plugin.",
+      "translations": {
+        "zh-TW": {
+          "translation": "外掛"
+        },
+        "ja": {
+          "translation": "プラグイン"
+        }
+      }
+    },
+    {
+      "keyword": "content source",
+      "definition": "Where the pages of a docs site come from, like Fumadocs MDX or a CMS.",
+      "translations": {
+        "zh-TW": {
+          "translation": "內容來源"
+        },
+        "ja": {
+          "translation": "コンテンツソース"
+        }
+      }
+    },
+    {
+      "keyword": "locale",
+      "definition": "A language code, like en or zh-TW.",
+      "translations": {
+        "zh-TW": {
+          "translation": "語系"
+        },
+        "ja": {
+          "translation": "ロケール"
+        }
+      }
+    },
+    {
+      "keyword": "internationalization",
+      "definition": "Supporting several languages, i18n.",
+      "translations": {
+        "zh-TW": {
+          "translation": "國際化"
+        },
+        "ja": {
+          "translation": "国際化"
+        }
+      }
+    },
+    {
+      "keyword": "code block",
+      "definition": "A block of code in Markdown.",
+      "translations": {
+        "zh-TW": {
+          "translation": "程式碼區塊"
+        },
+        "ja": {
+          "translation": "コードブロック"
+        }
+      }
+    },
+    {
+      "keyword": "static export",
+      "definition": "Building a site as static files that need no server.",
+      "translations": {
+        "zh-TW": {
+          "translation": "靜態匯出"
+        },
+        "ja": {
+          "translation": "静的エクスポート"
+        }
+      }
+    },
+    {
+      "keyword": "configuration",
+      "definition": "Settings of a tool or app, like a config file.",
+      "translations": {
+        "zh-TW": {
+          "translation": "設定"
+        },
+        "ja": {
+          "translation": "設定"
+        }
+      }
+    }
+  ]
+}

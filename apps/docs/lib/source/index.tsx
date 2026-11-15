@@ -29,6 +29,9 @@ import { transformerTwoslash } from 'fumadocs-twoslash';
 import { createFileSystemTypesCache } from 'fumadocs-twoslash/cache-fs';
 import type { MdastPluginDefinition } from 'satteri';
 import { remarkFrameworkLinks } from '@/lib/remark-framework-links';
+import { i18n } from '@/lib/i18n';
+import { isFramework } from '@/lib/framework';
+import { FrameworkLogo } from '@/components/framework-logo';
 
 const typeTableGenerator = createGenerator({
   cache: createFileSystemGeneratorCache('.next/cache/fumadocs-typescript'),
@@ -68,7 +71,6 @@ const docs = defineDocs({
     compiler: 'satteri',
     schema: pageSchema.extend({
       preview: z.string().optional(),
-      index: z.boolean().default(false),
       /**
        * API routes only
        */
@@ -200,6 +202,15 @@ const blog = defineCollections({
   },
 });
 
+const agents = defineCollections({
+  type: 'doc',
+  compiler: 'satteri',
+  dir: 'content/agents',
+  postprocess: {
+    includeProcessedMarkdown: { headingIds: false },
+  },
+});
+
 export const source = loader(
   {
     docs: docs.toFumadocsSource(),
@@ -226,6 +237,9 @@ export const source = loader(
   },
   {
     baseUrl: '/docs',
+    i18n,
+    // the logos of frameworks, Lucide icons otherwise
+    icon: (icon) => (isFramework(icon) ? <FrameworkLogo framework={icon} /> : icon),
     plugins: [
       pageTreeCodeTitles(),
       lucideIconsPlugin(),
@@ -281,6 +295,11 @@ function transformerEscape(): ShikiTransformer {
 
 export const blogLoader = loader(blog.toFumadocsSource(), {
   baseUrl: '/blog',
+});
+
+/** the instructions for AI agents, docs pages render their Markdown for a framework */
+export const agentsLoader = loader(agents.toFumadocsSource(), {
+  baseUrl: '/',
 });
 
 export const blogAuthors: Record<string, BlogAuthor> = {
