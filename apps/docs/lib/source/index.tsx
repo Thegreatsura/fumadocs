@@ -1,5 +1,4 @@
 import { type LoaderPlugin, loader } from 'fumadocs-core/source';
-import { lucideIconsPlugin } from 'fumadocs-core/source/lucide-icons';
 import { openapi } from '@/lib/openapi';
 import { asyncapi } from '../asyncapi';
 import { graphql } from '../graphql';
@@ -104,6 +103,7 @@ const docs = defineDocs({
                   }),
                 {
                   inline: 'tailing-curly-colon',
+                  tokens: 'html',
                   transformers: [
                     ...(rehypeCodeDefaultOptions().transformers ?? []),
                     transformerTwoslash({
@@ -184,7 +184,7 @@ const blog = defineCollections({
                 contentHighlighter.override({
                   shikiTransformers: [...transformers, transformerEscape()],
                 }),
-              { inline: 'tailing-curly-colon' },
+              { inline: 'tailing-curly-colon', tokens: 'html' },
             ),
           ],
       remarkCodeTabOptions: {
@@ -238,11 +238,14 @@ export const source = loader(
   {
     baseUrl: '/docs',
     i18n,
-    // the logos of frameworks, Lucide icons otherwise
-    icon: (icon) => (isFramework(icon) ? <FrameworkLogo framework={icon} /> : icon),
+    // the logos of frameworks, the SVG markup of Lucide icons otherwise: `contents` keeps the svg in the layout of the parent
+    icon(icon) {
+      if (!icon) return;
+      if (isFramework(icon)) return <FrameworkLogo framework={icon} />;
+      return <span aria-hidden className="contents" dangerouslySetInnerHTML={{ __html: icon }} />;
+    },
     plugins: [
       pageTreeCodeTitles(),
-      lucideIconsPlugin(),
       openapi.loaderPlugin(),
       asyncapi.loaderPlugin(),
       graphql.loaderPlugin(),

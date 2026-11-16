@@ -66,8 +66,8 @@ const config: NextConfig = {
         permanent: true,
       },
       {
-        source: `/docs/:page(${pages})/:path*`,
-        destination: `/docs/${defaultFramework}/:page/:path*`,
+        source: `/docs/:path((?:${pages})(?:/.*)?)`,
+        destination: `/docs/${defaultFramework}/:path`,
         permanent: false,
       },
       // Markdown versions, see `proxy.ts`

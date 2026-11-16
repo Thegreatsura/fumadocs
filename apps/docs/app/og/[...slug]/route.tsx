@@ -15,7 +15,11 @@ export async function GET(_req: Request, { params }: RouteContext<'/og/[...slug]
   if (!page) notFound();
 
   return new ImageResponse(
-    <MetadataImage title={page.data.title} description={page.data.description} />,
+    <MetadataImage
+      title={page.data.title}
+      description={page.data.description}
+      locale={page.locale}
+    />,
     await getImageResponseOptions(page.locale),
   );
 }

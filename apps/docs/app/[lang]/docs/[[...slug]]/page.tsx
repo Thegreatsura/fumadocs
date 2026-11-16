@@ -15,7 +15,7 @@ import {
 } from 'fumadocs-ui/layouts/spacious/page';
 import { getPageComponents } from '@/components/mdx/page';
 import { AsyncAPIPageLazy, GraphQLPageLazy, OpenAPIPageLazy } from './lazy';
-import { SponsorsMarquee } from '@fumari/sponsors';
+import { SponsorsMarquee } from '@fumari/sponsors/client';
 import { frameworks, isFramework } from '@/lib/framework';
 import { notFound, redirect } from 'next/navigation';
 import { i18n } from '@/lib/i18n';
@@ -50,6 +50,8 @@ export default async function Page(props: PageProps<'/[lang]/docs/[[...slug]]'>)
 
   const pageProps = {
     tableOfContent: {
+      // fetched in the browser: a server fetch would make every page revalidate, and a regenerated page never
+      // matches its build output, so each one would be written again after every deploy
       footer: <SponsorsMarquee />,
     },
   } satisfies Partial<DocsPageProps>;
